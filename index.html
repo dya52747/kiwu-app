@@ -1,0 +1,855 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>🌸 KiWu-App</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{--rose:#8B4A6B;--rose-light:#D4A8C0;--rose-bg:#FDF0F5;--green:#66BB6A;--text:#2D1B0E;--text-soft:#9A7D7D;--bg:#FDF8F4;--orange:#E65100;--stim:#C62828;--blue:#1F5FA6}
+body{font-family:Georgia,serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden}
+.hdr{background:linear-gradient(135deg,#8B4A6B,#C4797A,#E8A87C);padding:calc(env(safe-area-inset-top,16px)+16px) 16px 50px;position:relative;overflow:hidden}
+.hdr.stim-mode{background:linear-gradient(135deg,#B71C1C,#E53935,#EF6C00)}
+.hdr::before{content:'';position:absolute;top:-40px;right:-40px;width:180px;height:180px;background:rgba(255,255,255,0.08);border-radius:50%}
+.hi{position:relative;z-index:1}
+.ht{font-size:23px;font-weight:bold;color:#fff}
+.hd{color:rgba(255,255,255,0.85);font-size:12px;margin-top:2px}
+.hchips{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+.chip{background:rgba(255,255,255,0.25);border-radius:12px;padding:7px 12px;backdrop-filter:blur(10px)}
+.chip-l{color:rgba(255,255,255,0.8);font-size:10px}
+.chip-v{color:#fff;font-size:15px;font-weight:bold}
+.chip-v.sm{font-size:11px}
+.sync-badge{background:rgba(255,255,255,0.2);border-radius:8px;padding:4px 10px;font-size:10px;color:#fff;display:inline-flex;align-items:center;gap:4px;margin-top:6px}
+.nav{display:flex;background:#fff;border-radius:20px 20px 0 0;margin:-20px 12px 0;box-shadow:0 -4px 20px rgba(0,0,0,0.08);overflow:hidden;position:relative;z-index:10}
+.nb{flex:1;padding:9px 1px 7px;border:none;background:transparent;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:1px;border-bottom:2px solid transparent;color:var(--text-soft);font-size:8.5px;font-family:inherit;transition:all 0.2s}
+.nb.active{background:var(--rose-bg);color:var(--rose);border-bottom-color:var(--rose)}
+.nb.stim-active{background:#FFF5F5!important;color:var(--stim)!important;border-bottom-color:var(--stim)!important}
+.nb .ic{font-size:16px}
+.content{padding-bottom:calc(env(safe-area-inset-bottom,20px)+80px)}
+.card{background:#fff;border-radius:16px;padding:16px;margin:10px 12px 0;box-shadow:0 2px 12px rgba(0,0,0,0.06)}
+.ct{font-size:12px;font-weight:bold;color:var(--rose);margin-bottom:10px;display:flex;align-items:center;gap:6px}
+.ct.stim{color:var(--stim)}
+.chkrow{display:flex;align-items:center;gap:10px;padding:9px 11px;border-radius:10px;margin-bottom:6px;cursor:pointer;border:1px solid;transition:all 0.2s}
+.chkrow.done{background:#F0FFF4;border-color:#A5D6A7}
+.chkrow.todo{background:var(--bg);border-color:#F0E8ED}
+.chkrow.forbidden{background:#FFF5F5;border-color:#FFCDD2;cursor:default}
+.cc{width:24px;height:24px;border-radius:50%;border:2px solid;display:flex;align-items:center;justify-content:center;font-size:13px;color:#fff;flex-shrink:0}
+.cc.done{background:var(--green);border-color:var(--green)}
+.cc.todo{background:transparent;border-color:var(--rose-light)}
+.cc.warn{background:#FFB300;border-color:#FFB300}
+.sprow{display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid #F5EEF8}
+.stag{padding:2px 8px;border-radius:8px;font-size:11px;font-weight:bold}
+.stag.yes{background:#E8F5E9;color:#2E7D32}
+.stag.light{background:#FFF8E1;color:var(--orange)}
+.stag.no{background:#FEEBEB;color:#C62828}
+.inp{width:100%;padding:10px 12px;border-radius:10px;border:1.5px solid #E8D5E0;font-size:14px;background:#fff;color:var(--text);font-family:inherit}
+.inp:focus{outline:none;border-color:var(--rose)}
+.lbl{font-size:11px;color:var(--text-soft);margin-bottom:4px}
+.btn{border:none;border-radius:12px;padding:10px 18px;font-size:13px;font-weight:bold;cursor:pointer;font-family:inherit;transition:all 0.15s}
+.btn.pri{background:var(--rose);color:#fff}
+.btn.ok{background:var(--green);color:#fff}
+.btn.stim{background:var(--stim);color:#fff}
+.btn.gray{background:#F0E8ED;color:var(--rose)}
+.btn.blue{background:var(--blue);color:#fff}
+.btn.full{width:100%}
+.btn.sm{padding:6px 12px;font-size:11px}
+.btn:active{transform:scale(0.97)}
+.pill{padding:5px 10px;border-radius:20px;font-size:11px;cursor:pointer;border:none;font-family:inherit;margin:2px;display:inline-block;transition:all 0.15s}
+.pill.on{background:var(--rose);color:#fff}
+.pill.off{background:#F5EEF8;color:var(--rose)}
+.pill.blue-on{background:var(--blue);color:#fff}
+.mrow{padding:9px 10px;border-bottom:1px solid #F5EEF8;cursor:pointer;border-radius:10px;transition:background 0.15s;display:flex;justify-content:space-between;align-items:center;gap:8px}
+.mrow:hover,.mrow:active{background:#FDF0F5}
+.mrow:last-child{border-bottom:none}
+.ml{flex:1;min-width:0}
+.mtype{font-size:10px;color:var(--text-soft);text-transform:uppercase;letter-spacing:1px}
+.mname{font-size:13px;font-weight:bold;margin-top:2px}
+.mhl{font-size:11px;color:var(--rose)}
+.mkcal{font-size:12px;color:#B8927C;font-weight:bold;white-space:nowrap}
+.flist{max-height:220px;overflow-y:auto;border:1px solid #F0E8ED;border-radius:10px;margin-bottom:10px}
+.fitem{display:flex;justify-content:space-between;align-items:center;padding:10px 12px;border-bottom:1px solid #F5EEF8;cursor:pointer;transition:background 0.15s}
+.fitem:last-child{border-bottom:none}
+.fitem:active,.fitem.selected{background:#FDF0F5}
+.fname{font-size:13px;font-weight:bold}
+.fcat{font-size:10px;color:var(--text-soft)}
+.fkcal{font-size:12px;color:var(--rose);font-weight:bold;white-space:nowrap}
+.fitem-del{background:none;border:none;color:#D9534F;cursor:pointer;font-size:18px;padding:0 4px;flex-shrink:0}
+.log-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid #F5EEF8}
+.log-del{background:none;border:none;color:#D9534F;cursor:pointer;font-size:20px;padding:0 4px}
+.pbar-wrap{background:#F5EEF8;border-radius:8px;height:10px;overflow:hidden;margin-top:4px}
+.pbar{height:100%;border-radius:8px;transition:width 0.4s}
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:200;display:flex;align-items:flex-end;justify-content:center}
+.sheet{background:#fff;border-radius:24px 24px 0 0;width:100%;max-height:92vh;overflow-y:auto;padding-bottom:env(safe-area-inset-bottom,20px);animation:up 0.3s ease}
+@keyframes up{from{transform:translateY(100%)}to{transform:translateY(0)}}
+.shdr{padding:20px 20px 10px;display:flex;justify-content:space-between;align-items:flex-start}
+.stitle{font-size:20px;font-weight:bold;color:var(--rose);flex:1}
+.xbtn{background:#F5EEF8;border:none;border-radius:50%;width:34px;height:34px;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.smeta{display:flex;gap:8px;padding:0 20px 14px;flex-wrap:wrap}
+.schip{background:var(--rose-bg);border-radius:10px;padding:5px 10px;font-size:11px;color:var(--rose)}
+.ssec{padding:0 20px 10px}
+.sstitle{font-size:12px;font-weight:bold;color:var(--text-soft);margin-bottom:8px;text-transform:uppercase;letter-spacing:1px}
+.ing-row{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #F5EEF8;font-size:13px}
+.step-row{display:flex;gap:10px;padding:8px 0;border-bottom:1px solid #F5EEF8}
+.snum{width:26px;height:26px;border-radius:50%;background:var(--rose);color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:bold;flex-shrink:0;margin-top:1px}
+.stxt{font-size:13px;color:#6B4E71;line-height:1.6;flex:1}
+.stip{background:#FFF8E1;border-left:4px solid #FF8F00;border-radius:0 10px 10px 0;padding:10px 12px;margin:10px 20px;font-size:12px;color:#5D4037;line-height:1.7}
+.scalc{background:#F0FFF4;border-left:4px solid #66BB6A;border-radius:0 10px 10px 0;padding:8px 12px;margin:0 20px 10px;font-size:11px;color:#2E7D32;line-height:1.8}
+.fb-card{border-radius:14px;padding:14px;margin-bottom:10px}
+.fb-good{background:linear-gradient(135deg,#F0FFF4,#E8F5E9);border:1.5px solid #A5D6A7}
+.fb-ok{background:linear-gradient(135deg,#FFF8E1,#FFF3CD);border:1.5px solid #FFD54F}
+.fb-warn{background:linear-gradient(135deg,#FFF5F5,#FFEBEE);border:1.5px solid #FFCDD2}
+.fb-row{display:flex;align-items:flex-start;gap:8px;padding:5px 0;font-size:12px;color:#4A4A4A;line-height:1.6}
+.info-row{padding:5px 0;font-size:12px;color:#6B4E71;line-height:1.9}
+.tip-row{padding:6px 0;border-bottom:1px solid #F5EEF8;font-size:12px;color:#6B4E71;line-height:1.5}
+.step-r{display:flex;gap:12px;padding:8px 0;border-bottom:1px solid #F5EEF8;align-items:flex-start}
+.circle{width:28px;height:28px;border-radius:50%;color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:bold;flex-shrink:0}
+.warn-box{background:#FFF3E0;border-left:4px solid #FF8F00;border-radius:0 10px 10px 0;padding:8px 12px;font-size:12px;color:#5D4037;margin:6px 0;line-height:1.7}
+.tag{display:inline-block;padding:3px 10px;border-radius:12px;font-size:11px;font-weight:bold}
+.spinner{display:flex;justify-content:center;padding:20px;align-items:center;gap:10px;font-size:13px;color:var(--text-soft)}
+.spin{width:28px;height:28px;border:3px solid var(--rose-bg);border-top-color:var(--rose);border-radius:50%;animation:spin 0.8s linear infinite;flex-shrink:0}
+@keyframes spin{to{transform:rotate(360deg)}}
+.cycle-day{aspect-ratio:1;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:11px}
+.cycle-day.cur{font-weight:bold;color:#fff!important;box-shadow:0 2px 8px rgba(0,0,0,0.2)}
+/* LOADING SCREEN */
+.init-screen{display:flex;align-items:center;justify-content:center;height:100vh;flex-direction:column;gap:16px;color:var(--rose);background:var(--bg)}
+.init-icon{font-size:48px;animation:pulse 1.5s ease-in-out infinite}
+.init-text{font-size:14px;color:var(--text-soft)}
+@keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.1);opacity:0.7}}
+.toggle-row{display:flex;justify-content:space-between;align-items:center;padding:10px 0}
+.toggle{position:relative;width:48px;height:26px;cursor:pointer}
+.toggle input{opacity:0;width:0;height:0;position:absolute}
+.tslider{position:absolute;inset:0;background:#ccc;border-radius:13px;transition:0.3s}
+.tslider:before{content:'';position:absolute;width:20px;height:20px;left:3px;bottom:3px;background:#fff;border-radius:50%;transition:0.3s}
+input:checked+.tslider{background:var(--rose)}
+input:checked+.tslider.stim-t{background:var(--stim)}
+input:checked+.tslider:before{transform:translateX(22px)}
+/* SYNC */
+.sync-card{background:linear-gradient(135deg,#E8F5E9,#F0FFF4);border:1.5px solid #A5D6A7;border-radius:14px;padding:14px;margin-bottom:10px}
+.sync-row{display:flex;justify-content:space-between;align-items:center;padding:6px 0;font-size:12px;border-bottom:1px solid rgba(0,0,0,0.06)}
+.sync-key{color:#4A4A4A}
+.sync-val{color:#2E7D32;font-weight:bold;font-size:11px}
+.src-label{font-size:10px;padding:1px 6px;border-radius:6px;font-weight:bold;flex-shrink:0}
+.src-off{background:#E8F5E9;color:#2E7D32}
+.src-my{background:var(--rose-bg);color:var(--rose)}
+.src-list{background:#E3F2FD;color:var(--blue)}
+.src-manual{background:#F5EEF8;color:var(--rose)}
+</style>
+</head>
+<body>
+<div id="app">
+  <div class="init-screen">
+    <div class="init-icon">🌸</div>
+    <div style="font-size:16px;font-weight:bold;color:var(--rose)">Meine KiWu-App</div>
+    <div class="init-text">Lade deine Daten…</div>
+    <div class="spinner" style="padding:0"><div class="spin"></div></div>
+  </div>
+</div>
+<script>
+// ═══════════════════════════════════════════
+// STORAGE – Hybrid: window.storage + localStorage
+// ═══════════════════════════════════════════
+async function storeGet(k){
+  const key='kiwu_'+k;
+  // Try window.storage (Claude artifact – cross-session & cross-device)
+  if(typeof window.storage!=='undefined'){
+    try{
+      const r=await window.storage.get(key);
+      return r?JSON.parse(r.value):null;
+    }catch{}
+  }
+  // Fallback: localStorage (GitHub Pages – same device)
+  try{return JSON.parse(localStorage.getItem(key))}catch{return null}
+}
+
+async function storeSet(k,v){
+  const key='kiwu_'+k;
+  const str=JSON.stringify(v);
+  if(typeof window.storage!=='undefined'){
+    try{await window.storage.set(key,str)}catch{}
+  }
+  try{localStorage.setItem(key,str)}catch{}
+}
+
+function storageType(){
+  return typeof window.storage!=='undefined'?'☁️ Cloud-Sync aktiv':'💾 Lokaler Speicher';
+}
+
+// ═══════════════════════════════════════════
+// DATA
+// ═══════════════════════════════════════════
+const PHASES=[
+  {name:"Menstruation",color:"#E57373",bg:"#FFF5F5",emoji:"🔴",desc:"Ruhe & sanfte Bewegung",tip:"Warme Mahlzeiten, Eisen + Magnesium"},
+  {name:"Aufbauphase",color:"#5C9BD6",bg:"#F0F7FF",emoji:"🔵",desc:"Energie steigt – aktiver werden",tip:"Protein bei jeder Mahlzeit – fördert Follikelwachstum"},
+  {name:"Eisprung",color:"#66BB6A",bg:"#F0FFF1",emoji:"🟢",desc:"Beste Phase – volle Kraft!",tip:"Maximale Antioxidantien – schützt die reifende Eizelle"},
+  {name:"Ruhephase",color:"#AB77C4",bg:"#FAF0FF",emoji:"🟣",desc:"Sanfter werden",tip:"Darmgesundheit: Probiotika täglich"},
+];
+function getPhase(d){if(d<=5)return PHASES[0];if(d<=14)return PHASES[1];if(d<=20)return PHASES[2];return PHASES[3]}
+
+const SUPERFOODS=[
+  {id:"paranuss",name:"🌰 2 Paranüsse",desc:"Selen – täglich",warn:"⚠️ Max. 2!",stimForbid:false},
+  {id:"hanfsamen",name:"🌿 Hanfsamen 10g",desc:"Vollprotein",warn:"",stimForbid:false},
+  {id:"sonnenbl",name:"🌻 Sonnenblumenkerne 8g",desc:"Vitamin E",warn:"",stimForbid:false},
+  {id:"blaubeeren",name:"🫐 Blaubeeren 80g",desc:"Antioxidantien",warn:"",stimForbid:false},
+  {id:"leinsamen",name:"🌱 Leinsamenschrot 8g",desc:"Omega-3",warn:"",stimForbid:false},
+  {id:"kurkuma",name:"🟡 Kurkuma + Pfeffer",desc:"Entzündungshemmend",warn:"Immer mit Pfeffer!",stimForbid:false},
+  {id:"rotebeete",name:"🔴 Rote Beete 75g",desc:"Durchblutung",warn:"",stimForbid:false},
+  {id:"edamame",name:"🫛 Edamame 60g",desc:"Folsäure",warn:"",stimForbid:false},
+  {id:"maca",name:"🟤 Maca-Pulver 4g",desc:"Hormonbalance (Mo & Do)",warn:"⚠️ Mo & Do",stimForbid:true},
+];
+
+const BUILTIN_FOODS=[
+  {id:"hfl",n:"Haferflocken",kcal:370,p:13,u:"g",cat:"Getreide"},
+  {id:"hml",n:"Hafermilch",kcal:45,p:1,u:"ml",cat:"Getreide"},
+  {id:"qin",n:"Quinoa (roh)",kcal:368,p:14,u:"g",cat:"Getreide"},
+  {id:"blg",n:"Bulgur (roh)",kcal:344,p:12,u:"g",cat:"Getreide"},
+  {id:"vkr",n:"Vollkornreis (roh)",kcal:350,p:7,u:"g",cat:"Getreide"},
+  {id:"dml",n:"Dinkelmehl",kcal:330,p:13,u:"g",cat:"Getreide"},
+  {id:"dbr",n:"Dinkelbrötchen",kcal:280,p:9,u:"g",cat:"Getreide"},
+  {id:"kbe",n:"Kichererbsen (Dose)",kcal:120,p:7,u:"g",cat:"Hülsenfrüchte"},
+  {id:"rln",n:"Rote Linsen (roh)",kcal:339,p:26,u:"g",cat:"Hülsenfrüchte"},
+  {id:"bln",n:"Beluga-Linsen (roh)",kcal:335,p:25,u:"g",cat:"Hülsenfrüchte"},
+  {id:"edm",n:"Edamame",kcal:122,p:11,u:"g",cat:"Hülsenfrüchte"},
+  {id:"tfu",n:"Tofu (fest)",kcal:76,p:8,u:"g",cat:"Protein"},
+  {id:"tmp",n:"Tempeh",kcal:193,p:19,u:"g",cat:"Protein"},
+  {id:"ei",n:"Ei (Stück)",kcal:78,p:7,u:"Stück",perU:1,cat:"Protein"},
+  {id:"mqk",n:"Magerquark",kcal:65,p:12,u:"g",cat:"Milch"},
+  {id:"rct",n:"Ricotta",kcal:174,p:7,u:"g",cat:"Milch"},
+  {id:"fta",n:"Feta",kcal:264,p:14,u:"g",cat:"Milch"},
+  {id:"pmn",n:"Parmesan",kcal:431,p:38,u:"g",cat:"Milch"},
+  {id:"htk",n:"Hüttenkäse",kcal:83,p:11,u:"g",cat:"Milch"},
+  {id:"kfr",n:"Kefir",kcal:60,p:3,u:"ml",cat:"Milch"},
+  {id:"jgh",n:"Joghurt natur",kcal:59,p:4,u:"g",cat:"Milch"},
+  {id:"spi",n:"Blattspinat",kcal:23,p:3,u:"g",cat:"Gemüse"},
+  {id:"rbt",n:"Rote Beete",kcal:44,p:2,u:"g",cat:"Gemüse"},
+  {id:"brk",n:"Brokkoli",kcal:34,p:3,u:"g",cat:"Gemüse"},
+  {id:"skt",n:"Süßkartoffel",kcal:86,p:2,u:"g",cat:"Gemüse"},
+  {id:"pap",n:"Paprika rot",kcal:31,p:1,u:"g",cat:"Gemüse"},
+  {id:"ruc",n:"Rucola",kcal:25,p:3,u:"g",cat:"Gemüse"},
+  {id:"spg",n:"Grüner Spargel",kcal:22,p:2,u:"g",cat:"Gemüse"},
+  {id:"tmd",n:"Tomaten (Dose)",kcal:24,p:1,u:"g",cat:"Gemüse"},
+  {id:"mhr",n:"Möhre",kcal:35,p:1,u:"g",cat:"Gemüse"},
+  {id:"blb",n:"Blaubeeren",kcal:57,p:1,u:"g",cat:"Obst"},
+  {id:"kiw",n:"Kiwi",kcal:58,p:1,u:"g",cat:"Obst"},
+  {id:"edb",n:"Erdbeeren",kcal:32,p:1,u:"g",cat:"Obst"},
+  {id:"apl",n:"Apfel",kcal:52,p:0.3,u:"g",cat:"Obst"},
+  {id:"avo",n:"Avocado",kcal:160,p:2,u:"g",cat:"Obst"},
+  {id:"hfs",n:"Hanfsamen",kcal:553,p:31,u:"g",cat:"Nüsse & Samen"},
+  {id:"kks",n:"Kürbiskerne",kcal:574,p:30,u:"g",cat:"Nüsse & Samen"},
+  {id:"sbk",n:"Sonnenblumenkerne",kcal:584,p:21,u:"g",cat:"Nüsse & Samen"},
+  {id:"lns",n:"Leinsamenschrot",kcal:450,p:18,u:"g",cat:"Nüsse & Samen"},
+  {id:"wln",n:"Walnüsse",kcal:654,p:15,u:"g",cat:"Nüsse & Samen"},
+  {id:"mnd",n:"Mandeln",kcal:579,p:21,u:"g",cat:"Nüsse & Samen"},
+  {id:"olo",n:"Olivenöl",kcal:884,p:0,u:"g",cat:"Öle"},
+  {id:"kko",n:"Kokosöl",kcal:900,p:0,u:"g",cat:"Öle"},
+  {id:"kkm",n:"Kokosmilch (Vollfett)",kcal:150,p:2,u:"ml",cat:"Sonstiges"},
+  {id:"apm",n:"Apfelmus",kcal:52,p:0.3,u:"g",cat:"Sonstiges"},
+  {id:"hon",n:"Honig",kcal:304,p:0.3,u:"g",cat:"Sonstiges"},
+  {id:"mac",n:"Maca-Pulver ⚠️",kcal:325,p:14,u:"g",cat:"Superfoods",stimWarn:true},
+  {id:"kuk",n:"Kurkuma",kcal:354,p:8,u:"g",cat:"Superfoods"},
+];
+
+const SPORT={1:{y:1,nw:"💛",pi:0,trx:0,bb:0,to:0,note:"Nur Ruhe & Yoga"},2:{y:1,nw:"💛",pi:0,trx:0,bb:0,to:0,note:"Sanftes Spazieren"},3:{y:1,nw:"✅",pi:"💛",trx:0,bb:0,to:0},4:{y:1,nw:"✅",pi:"💛",trx:0,bb:0,to:0},5:{y:1,nw:"✅",pi:"✅",trx:0,bb:"💛",to:0},6:{y:1,nw:"✅",pi:"✅",trx:0,bb:0,to:0},7:{y:1,nw:0,pi:"✅",trx:"✅",bb:"✅",to:0},8:{y:1,nw:"✅",pi:0,trx:0,bb:0,to:0},9:{y:0,nw:"✅",pi:"✅",trx:0,bb:0,to:0},10:{y:1,nw:0,pi:0,trx:0,bb:0,to:"✅"},11:{y:1,nw:"✅",pi:0,trx:0,bb:"✅",to:0},12:{y:0,nw:"✅",pi:"✅",trx:0,bb:0,to:0},13:{y:1,nw:0,pi:0,trx:"✅",bb:0,to:0},14:{y:1,nw:"✅",pi:0,trx:0,bb:0,to:0},15:{y:1,nw:"✅",pi:"✅",trx:"✅",bb:0,to:0,note:"Volle Energie!"},16:{y:0,nw:0,pi:0,trx:"✅",bb:"✅",to:"✅",note:"Krafttag"},17:{y:1,nw:"✅",pi:0,trx:0,bb:0,to:0},18:{y:0,nw:"✅",pi:"✅",trx:0,bb:0,to:0},19:{y:1,nw:0,pi:0,trx:"✅",bb:0,to:0},20:{y:1,nw:"✅",pi:0,trx:0,bb:"✅",to:0},21:{y:1,nw:"✅",pi:0,trx:0,bb:0,to:0,note:"Ruhephase"},22:{y:1,nw:0,pi:"💛",trx:0,bb:0,to:0},23:{y:1,nw:"✅",pi:0,trx:0,bb:0,to:0},24:{y:0,nw:"💛",pi:0,trx:0,bb:"💛",to:0,note:"Alles leicht"},25:{y:1,nw:"✅",pi:0,trx:0,bb:0,to:0},26:{y:1,nw:0,pi:"💛",trx:0,bb:0,to:0},27:{y:1,nw:"✅",pi:0,trx:0,bb:0,to:0},28:{y:0,nw:"💛",pi:0,trx:0,bb:0,to:"💛"},29:{y:1,nw:"✅",pi:0,trx:0,bb:0,to:0},30:{y:1,nw:0,pi:"💛",trx:0,bb:0,to:0,note:"Zyklusende"}};
+function getSport(d){return SPORT[Math.min(d,30)]||SPORT[30]}
+
+const MEALS={
+  Mo:{f:["🌾 KiWu-Porridge","Hanfsamen+Blaubeeren+Maca",465,"Mo-f"],m:["🥗 Rote-Beete-Quinoa-Bowl","Rote Beete+Kichererbsen+Ei",575,"Mo-m"],a:["🍳 Spinat-Ricotta-Pfanne","2 Eier+Spinat+Ricotta",525,"Mo-a"]},
+  Di:{f:["🧀 Syrniki","Quark+2 Eier+Dinkelmehl+Hanfsamen",525,"Di-f"],m:["🥗 Linsen-Edamame-Bowl","Beluga-Linsen+Edamame+Kürbiskerne",550,"Di-m"],a:["🥦 Tofu-Edamame-Wok","Tofu+Edamame+Brokkoli+Vollkornreis",500,"Di-a"]},
+  Mi:{f:["🍮 Quarkauflauf","Quark+2 Eier+Rhabarber+Erdbeeren",375,"Mi-f"],m:["🥗 Spargel-Feta-Bowl","Bulgur+Spargel+Rote Beete+Feta",617,"Mi-m"],a:["🍜 Linsensuppe Kurkuma","1 Port. (Rezept für 2)",293,"Mi-a"]},
+  Do:{f:["🌾 KiWu-Porridge","Kürbiskerne+Apfel+Leinsamen+Maca",469,"Do-f"],m:["🥗 Tempeh-Erbsen-Bowl","Tempeh+Erbsen+Quinoa",543,"Do-m"],a:["🫑 Gefüllte Paprika","Quinoa+Feta+Hanfsamen",596,"Do-a"]},
+  Fr:{f:["🧀 Syrniki","Quark+2 Eier+Dinkelmehl+Hanfsamen",532,"Fr-f"],m:["🥗 Avocado-Kichererbsen-Bowl","Avocado+Kichererbsen+Hanfsamen",439,"Fr-m"],a:["🥚 Shakshuka Power","3 Eier+Spinat+Tomate+Feta",499,"Fr-a"]},
+  Sa:{f:["🥐 WE-Frühstück","Dinkelbrötchen+2 Eier+Avocado",522,"Sa-f"],m:["🥗 Bärlauch-Quinoa-Bowl","Quinoa+Bärlauch+Edamame",567,"Sa-m"],a:["🍕 Dinkelpizza KiWu","⚠️ Ganze Pizza=785 kcal (2 Port.!)",785,"Sa-a"]},
+  So:{f:["🥐 WE-Frühstück","Dinkelbrötchen+Pochiertes Ei+Hüttenkäse",419,"So-f"],m:["🥗 Sonntagssalat KiWu","1 Port. von 2 (Meal Prep!)",544,"So-m"],a:["🥘 Kichererbsen-Curry","1 Port. ohne Reis (Rezept für 2!)",330,"So-a"]},
+};
+
+const RECIPES={
+  "morgen":{title:"🌅 Morgenritual",kcal:136,time:"2 Min",portions:"täglich",calc:"Kefir 150ml=90 | Kiwi 80g=46 → 136 kcal",ings:[["Kefir",150,"ml"],["Kiwi",80,"g"]],steps:["Kefir bei Zimmertemperatur trinken.","Kiwi schälen und essen.","15 Min vor dem Frühstück warten."],tip:"⭐ Kefir hat bis zu 30 Bakterienstämme. Kiwi-Vitamin C verbessert die Eisenaufnahme."},
+  "Mo-f":{title:"🌾 KiWu-Porridge",kcal:465,time:"10 Min",portions:"1",calc:"Haferflocken 60g=222|Hafermilch 200ml=90|Leinsamenschrot 8g=36|Hanfsamen 10g=55|Blaubeeren 80g=46|Maca 4g=13|Zimt≈3 → 465 kcal",ings:[["Haferflocken",60,"g"],["Hafermilch",200,"ml"],["Leinsamenschrot",8,"g"],["Hanfsamen",10,"g"],["Blaubeeren",80,"g"],["Maca-Pulver",4,"g"]],steps:["Haferflocken aufkochen, 3 Min quellen.","Leinsamen+Maca einrühren.","Mit Hanfsamen+Blaubeeren toppen."],tip:"💡 Leinsamenschrot kühl lagern!"},
+  "Mo-m":{title:"🥗 Rote-Beete-Quinoa-Bowl",kcal:575,time:"20 Min",portions:"1",calc:"Quinoa 80g=294|Rote Beete 75g=33|Kichererbsen 60g=72|Ei 60g=78|Rucola 30g=8|Olivenöl 10g=88|Zitrone≈2 → 575 kcal",ings:[["Quinoa (roh)",80,"g"],["Rote Beete",75,"g"],["Kichererbsen (Dose)",60,"g"],["Ei",1,"Stück"],["Rucola",30,"g"],["Olivenöl",1,"EL"]],steps:["Quinoa 15 Min kochen.","Ei hart kochen.","Kichererbsen mit Kurkuma+Pfeffer anrösten.","Bowl zusammenstellen."],tip:"⭐ Kurkuma IMMER mit Pfeffer! Zitrone verdreifacht Eisenaufnahme."},
+  "Mo-a":{title:"🍳 Spinat-Ricotta-Pfanne",kcal:525,time:"15 Min",portions:"1",calc:"Spinat 150g=35|Ricotta 100g=174|Eier 2×78=156|Parmesan 15g=65|Olivenöl 10g=88|Knoblauch≈7 → 525 kcal",ings:[["Blattspinat",150,"g"],["Ricotta",100,"g"],["Eier",2,"Stück"],["Parmesan",15,"g"],["Olivenöl",1,"EL"]],steps:["Knoblauch anschwitzen, Spinat zugeben.","Eier stocken lassen.","Ricotta zugeben, mit Parmesan."],tip:"💡 2 Eier täglich = optimale KiWu-Ernährung!"},
+  "Di-f":{title:"🧀 Syrniki",kcal:525,time:"20 Min",portions:"2 Stück",calc:"Magerquark 200g=130|Eier 2=156|Dinkelmehl 40g=132|Hanfsamen 10g=55|Kokosöl 4g=36|Apfelmus 30g=16 → 525 kcal",ings:[["Magerquark",200,"g"],["Eier",2,"Stück"],["Dinkelmehl",40,"g"],["Hanfsamen",10,"g"],["Kokosöl",1,"TL"],["Apfelmus",2,"EL"]],steps:["Alles zu klebrigem Teig verrühren.","Taler formen.","In Kokosöl je 3–4 Min braten."],tip:"💡 Abends formen, morgens braten!"},
+  "Di-m":{title:"🥗 Linsen-Edamame-Bowl",kcal:550,time:"25 Min",portions:"1",calc:"Beluga-Linsen 80g=268|Edamame 60g=73|Kürbiskerne 15g=86|Möhre 100g=35|Olivenöl 10g=88 → 550 kcal",ings:[["Beluga-Linsen (roh)",80,"g"],["Edamame (TK)",60,"g"],["Kürbiskerne",15,"g"],["Möhre",1,"Stück"],["Olivenöl",1,"EL"]],steps:["Linsen 20 Min kochen.","Edamame 3 Min blanchieren.","Möhre raspeln, alles mischen."],tip:"⭐ Beluga-Linsen = höchster Eisengehalt!"},
+  "Di-a":{title:"🥦 Tofu-Edamame-Wok",kcal:500,time:"20 Min",portions:"1",calc:"Tofu 150g=114|Edamame 60g=73|Brokkoli 100g=34|Vollkornreis 50g=175|Sojasauce=10|Sesamöl 4g=36|Sesam=29 → 471+29=500 kcal",ings:[["Tofu (fest)",150,"g"],["Edamame",60,"g"],["Brokkoli",100,"g"],["Vollkornreis (roh)",50,"g"],["Sojasauce",1,"EL"],["Sesamöl",1,"TL"]],steps:["Reis kochen.","Tofu trocken braten.","Brokkoli+Edamame garen, mit Sojasauce."],tip:"⭐ Tofu gut ausdrücken!"},
+  "Mi-f":{title:"🍮 Quarkauflauf",kcal:375,time:"35 Min",portions:"1",calc:"Magerquark 200g=130|Eier 2=156|Rhabarber 80g=14|Erdbeeren 60g=19|Honig 7g=21|Stärke 10g=34 → 374 kcal",ings:[["Magerquark",200,"g"],["Eier",2,"Stück"],["Rhabarber",80,"g"],["Erdbeeren",60,"g"],["Honig",1,"TL"]],steps:["Rhabarber marinieren.","Quark+Eier+Stärke verrühren.","180°C, 25 Min backen."],tip:"💡 Kalt auch lecker – super Meal Prep!"},
+  "Mi-m":{title:"🥗 Spargel-Feta-Bowl",kcal:617,time:"20 Min",portions:"1",calc:"Bulgur 80g=275|Spargel 100g=22|Rote Beete 75g=33|Feta 40g=106|Sonnenblumenkerne 15g=88|Olivenöl 10g=88|Zitrone≈5 → 617 kcal",ings:[["Bulgur (roh)",80,"g"],["Grüner Spargel",100,"g"],["Rote Beete",75,"g"],["Feta",40,"g"],["Sonnenblumenkerne",15,"g"],["Olivenöl",1,"EL"]],steps:["Bulgur 12 Min quellen.","Spargel anbraten.","Bowl zusammenstellen, Feta+Öl+Zitrone."],tip:"⭐ Sonnenblumenkerne = beste Vitamin-E-Quelle!"},
+  "Mi-a":{title:"🍜 Linsensuppe Kurkuma",kcal:293,time:"30 Min",portions:"1 von 2",calc:"Rote Linsen 120g=407|Süßkartoffel 150g=129|Kokosöl 4g=36|Brühe≈10 → 582÷2=293 kcal",ings:[["Rote Linsen",120,"g"],["Süßkartoffel",150,"g"],["Gemüsebrühe",600,"ml"],["Kurkuma",1,"TL"],["Kokosöl",1,"TL"]],steps:["Süßkartoffel würfeln.","Linsen+Süßkartoffel+Brühe 20 Min kochen.","Kurkuma+Pfeffer, Hälfte einfrieren!"],tip:"⭐ Rezept für 2 Port. à 293 kcal!"},
+  "Do-f":{title:"🌾 KiWu-Porridge (Kürbis)",kcal:469,time:"10 Min",portions:"1",calc:"Haferflocken 60g=222|Hafermilch 200ml=90|Leinsamenschrot 8g=36|Kürbiskerne 12g=69|Apfel 75g=39|Maca 4g=13 → 469 kcal",ings:[["Haferflocken",60,"g"],["Hafermilch",200,"ml"],["Leinsamenschrot",8,"g"],["Kürbiskerne",12,"g"],["Apfel gerieben",75,"g"],["Maca-Pulver",4,"g"]],steps:["Haferflocken aufkochen.","Leinsamen+Maca einrühren.","Mit Kürbiskernen+Apfel toppen."],tip:"💡 Kürbiskerne = Zink für Eizellqualität!"},
+  "Do-m":{title:"🥗 Tempeh-Erbsen-Bowl",kcal:543,time:"20 Min",portions:"1",calc:"Tempeh 100g=193|Erbsen 80g=58|Quinoa 50g=184|Olivenöl 10g=88|Sojasauce=10|Radieschen≈10 → 543 kcal",ings:[["Tempeh",100,"g"],["Erbsen (TK)",80,"g"],["Quinoa (roh)",50,"g"],["Olivenöl",1,"EL"],["Sojasauce",1,"EL"]],steps:["Quinoa kochen.","Tempeh in Öl+Sojasauce braten.","Erbsen blanchieren, alles anrichten."],tip:"⭐ Tempeh fermentiert = probiotischer als Tofu!"},
+  "Do-a":{title:"🫑 Gefüllte Paprika",kcal:596,time:"35 Min",portions:"1",calc:"Paprika 150g=47|Quinoa 80g=294|Feta 50g=132|Hanfsamen 10g=55|Tomaten 100g=24|Olivenöl 4g=44 → 596 kcal",ings:[["Paprika rot",1,"Stück"],["Quinoa (roh)",80,"g"],["Feta",50,"g"],["Hanfsamen",10,"g"],["Tomaten (Dose)",100,"g"]],steps:["Quinoa kochen.","Paprika halbieren, vorbacken.","Füllen, 15–20 Min backen (200°C)."],tip:"💡 Paprika hat mehr Vitamin C als Orangen!"},
+  "Fr-f":{title:"🧀 Syrniki (Apfelmus)",kcal:532,time:"20 Min",portions:"2 Stück",calc:"Magerquark 200g=130|Eier 2=156|Dinkelmehl 40g=132|Hanfsamen 10g=55|Kokosöl 4g=36|Apfelmus 45g=23 → 532 kcal",ings:[["Magerquark",200,"g"],["Eier",2,"Stück"],["Dinkelmehl",40,"g"],["Hanfsamen",10,"g"],["Apfelmus",3,"EL"]],steps:["Wie Di-Syrniki, mit mehr Apfelmus."],tip:"💡 Hanfsamen = alle 9 essenziellen Aminosäuren!"},
+  "Fr-m":{title:"🥗 Avocado-Kichererbsen-Bowl",kcal:439,time:"15 Min",portions:"1",calc:"Kichererbsen 120g=144|Avocado 75g=120|Hanfsamen 10g=55|Rucola 40g=10|Tomaten 90g=16|Olivenöl 10g=88|Zitrone≈6 → 439 kcal",ings:[["Kichererbsen (Dose)",120,"g"],["Avocado",75,"g"],["Hanfsamen",10,"g"],["Rucola",40,"g"],["Olivenöl",1,"EL"]],steps:["Alle Zutaten anrichten.","Mit Zitronensaft+Öl+Kreuzkümmel würzen."],tip:"⭐ Avocado-Fette für Hormonsynthese!"},
+  "Fr-a":{title:"🥚 Shakshuka Power",kcal:499,time:"20 Min",portions:"1",calc:"Eier 3×78=234|Spinat 100g=23|Tomaten 200g=48|Feta 40g=106|Olivenöl 10g=88 → 499 kcal",ings:[["Eier",3,"Stück"],["Blattspinat",100,"g"],["Tomaten (Dose)",200,"g"],["Feta",40,"g"],["Olivenöl",1,"EL"]],steps:["Tomaten+Gewürze 5 Min köcheln.","Spinat unterrühren.","Eier reinsetzen, 5–7 Min stocken.","Mit Feta bestreuen."],tip:"⭐ Kurkuma+Pfeffer macht dieses Gericht besonders entzündungshemmend!"},
+  "Sa-f":{title:"🥐 WE-Frühstück: Avocado-Ei",kcal:522,time:"15 Min",portions:"1",calc:"Dinkelbrötchen 70g=196|Eier 2=156|Avocado 75g=120|Kresse 20g=6|Olivenöl 4g=44 → 522 kcal",ings:[["Dinkelbrötchen",1,"Stück (70g)"],["Eier",2,"Stück"],["Avocado",75,"g"],["Kresse",20,"g"]],steps:["Brötchen rösten.","Eier zubereiten.","Avocado zerdrücken, alles anrichten."],tip:"💡 Dinkel hat mehr Mineralstoffe als Weizen!"},
+  "Sa-m":{title:"🥗 Bärlauch-Quinoa-Bowl",kcal:567,time:"20 Min",portions:"1",calc:"Quinoa 80g=294|Bärlauch 30g=11|Hanfsamen 10g=55|Edamame 50g=61|Olivenöl 10g=88|Sonnenblumenkerne 10g=58 → 567 kcal",ings:[["Quinoa (roh)",80,"g"],["Bärlauch frisch",30,"g"],["Hanfsamen",10,"g"],["Edamame",50,"g"],["Olivenöl",1,"EL"]],steps:["Quinoa kochen, abkühlen.","Bärlauch ROH hacken.","Edamame blanchieren, alles mischen."],tip:"🌿 Bärlauch nur roh – Wärme zerstört Wirkstoffe!"},
+  "Sa-a":{title:"🍕 Dinkelpizza KiWu",kcal:785,time:"40 Min",portions:"1 Pizza (2 Port.!)",calc:"Dinkelmehl 120g=396|Ricotta 80g=139|Ei 1=78|Spinat 80g=18|Parmesan 15g=65|Olivenöl 10g=88 → 784 kcal",ings:[["Dinkelmehl",120,"g"],["Ricotta",80,"g"],["Ei",1,"Stück"],["Blattspinat",80,"g"],["Parmesan",15,"g"]],steps:["Teig kneten, 20 Min ruhen.","Spinat zusammenfallen lassen.","Belegen, 220°C, 15 Min backen."],tip:"⚠️ 785 kcal gesamt → als 2×393 kcal teilen!"},
+  "So-f":{title:"🥐 WE-Frühstück: Pochiertes Ei",kcal:419,time:"15 Min",portions:"1",calc:"Dinkelbrötchen 70g=196|Eier 2=156|Hüttenkäse 80g=66|Schnittlauch≈1 → 419 kcal",ings:[["Dinkelbrötchen",1,"Stück (70g)"],["Eier",2,"Stück"],["Hüttenkäse",80,"g"]],steps:["Wasser+Essig erhitzen.","Ei 3–4 Min pochieren.","Brötchen+Hüttenkäse, Ei obenauf."],tip:"💡 Pochieren = schonendste Zubereitung!"},
+  "So-m":{title:"🥗 Sonntagssalat KiWu",kcal:544,time:"25 Min",portions:"1 von 2",calc:"Quinoa 120g=442|Rote Beete 100g=44|Avocado 150g=240|Hanfsamen 15g=83|Sonnenblumenkerne 15g=88|Rucola 50g=13|Olivenöl 20g=176 → 1086÷2=543 kcal",ings:[["Quinoa (roh)",120,"g"],["Rote Beete",100,"g"],["Avocado",150,"g"],["Hanfsamen",15,"g"],["Sonnenblumenkerne",15,"g"],["Rucola",50,"g"],["Olivenöl",2,"EL"]],steps:["Quinoa kochen, abkühlen.","Alles anrichten.","Mit Öl+Essig anmachen.","Hälfte kalt stellen – Avocado erst frisch!"],tip:"⭐ 2 Port. à 544 kcal!"},
+  "So-a":{title:"🥘 Kichererbsen-Curry",kcal:330,time:"30 Min",portions:"1 von 2",calc:"Kichererbsen 240g=288|Rote Beete 100g=44|Spinat 80g=18|Kokosmilch 150ml=225|Tomaten 200g=48|Kokosöl 4g=36 → 659÷2=330 kcal",ings:[["Kichererbsen (Dose)",240,"g"],["Rote Beete",100,"g"],["Blattspinat",80,"g"],["Kokosmilch",150,"ml"],["Tomaten (Dose)",200,"g"]],steps:["Knoblauch+Ingwer anschwitzen.","Kurkuma+Pfeffer rösten.","Tomaten+Kokosmilch+Kichererbsen 15 Min.","Spinat unterrühren."],tip:"⚠️ 2 Port. à 330 kcal. Mit 60g Vollkornreis +210 kcal."},
+};
+
+// ═══════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════
+let state={
+  tab:"heute",cycleDay1:null,superChecks:{},madyLog:{},tracker:{},recipe:null,
+  feedback:null,feedbackLoading:false,
+  stim:{active:false,startDate:null,etDate:null,afterTransfer:false},
+  trackerTab:"list",trackerSearch:"",trackerSelected:null,trackerAmount:"",
+  offSearch:"",offResults:[],offLoading:false,offSelected:null,offAmount:"",
+  customFoods:[],myFoodMode:"browse",newFood:{name:"",kcal:"",prot:"",unit:"g",cat:"Eigene"},
+  mySearch:"",mySelected:null,myAmount:"",
+  syncStatus:"loading", // "loading"|"ok"|"error"
+  lastSaved:null,
+};
+
+async function loadState(){
+  try{
+    const [cd1,sc,ml,tr,cf,stim,ls,bd]=await Promise.all([
+      storeGet('cd1'),storeGet('sc'),storeGet('ml'),storeGet('tr'),storeGet('cf'),storeGet('stim'),storeGet('ls'),storeGet('bd')
+    ]);
+    state.cycleDay1=cd1?new Date(cd1):null;
+    state.superChecks=sc||{};
+    state.madyLog=ml||{};
+    state.tracker=tr||{};
+    state.customFoods=cf||[];
+    state.bleedingDays=bd||{};
+    if(stim)state.stim={...state.stim,...stim};
+    state.lastSaved=ls||null;
+    const n=today();
+    state.calMonth={year:n.getFullYear(),month:n.getMonth()};
+    state.syncStatus='ok';
+  }catch(e){
+    state.syncStatus='error';
+  }
+}
+
+async function saveKey(k,v){
+  try{
+    await storeSet(k,v);
+    state.lastSaved=new Date().toISOString();
+    await storeSet('ls',state.lastSaved);
+    state.syncStatus='ok';
+  }catch{
+    state.syncStatus='error';
+  }
+}
+
+function today(){return new Date()}
+function todayKey(){const d=today();return`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`}
+function cycleDay(){if(!state.cycleDay1)return null;return Math.max(1,Math.floor((today()-state.cycleDay1)/86400000)+1)}
+function dow(){return["So","Mo","Di","Mi","Do","Fr","Sa"][today().getDay()]}
+function todayMeals(){return MEALS[dow()]||MEALS["Mo"]}
+function formatDate(d){return d.toLocaleDateString("de-DE",{weekday:"long",day:"numeric",month:"long"})}
+function stimDay(){if(!state.stim.active||!state.stim.startDate)return 0;return Math.max(1,Math.floor((today()-new Date(state.stim.startDate))/86400000)+1)}
+function isStimActive(){return state.stim.active}
+function nowTime(){const n=new Date();return`${String(n.getHours()).padStart(2,"0")}:${String(n.getMinutes()).padStart(2,"0")}`}
+function fmtSaved(iso){if(!iso)return"noch nie";const d=new Date(iso);return d.toLocaleDateString("de-DE",{day:"numeric",month:"short"})+", "+d.toLocaleTimeString("de-DE",{hour:"2-digit",minute:"2-digit"})}
+
+// ─── HELPERS ───────────────────────────────
+function stag(v){if(!v)return`<span class="stag no">❌ Pause</span>`;if(v==="✅")return`<span class="stag yes">✅ Empfohlen</span>`;if(v==="💛")return`<span class="stag light">💛 Leicht</span>`;return`<span class="stag yes">${v}</span>`}
+function sportRows(sp,stim){
+  if(stim)return[["🧘 Mady Yoga","✅"],["🚶 Nordic Walking","💛"],["🤸 Pilates",0],["💪 TRX",0],["☯️ BodyBalance",0],["🏋️ Tone/Core",0]].map(([n,v])=>`<div class="sprow"><span style="font-size:13px">${n}</span>${stag(v)}</div>`).join("");
+  return[["🧘 Mady Yoga",sp.y?"✅":0],["🚶 Nordic Walking",sp.nw],["🤸 Pilates",sp.pi],["💪 TRX",sp.trx],["☯️ BodyBalance",sp.bb],["🏋️ Tone/Core",sp.to]].map(([n,v])=>`<div class="sprow"><span style="font-size:13px">${n}</span>${stag(v)}</div>`).join("");
+}
+function mealRow(label,data){
+  const[name,hl,kcal,key]=data;
+  return`<div class="mrow" onclick="openRecipe('${key}')"><div class="ml"><div class="mtype">${label}</div><div class="mname">${name}</div><div class="mhl">${hl}</div></div><div style="display:flex;align-items:center;gap:5px"><div class="mkcal">${kcal} kcal</div><div style="color:var(--rose-light);font-size:14px">›</div></div></div>`;
+}
+
+// ─── RECIPE MODAL ──────────────────────────
+function renderRecipeModal(key){
+  const r=RECIPES[key];if(!r)return"";
+  return`<div class="overlay" onclick="maybeClose(event)"><div class="sheet" onclick="event.stopPropagation()">
+    <div class="shdr"><div class="stitle">${r.title}</div><button class="xbtn" onclick="closeRecipe()">×</button></div>
+    <div class="smeta"><div class="schip">⏱ ${r.time}</div><div class="schip">🔥 ${r.kcal} kcal</div><div class="schip">🍽 ${r.portions}</div></div>
+    <div class="scalc"><strong>✅ Berechnung:</strong><br>${r.calc}</div>
+    <div class="ssec"><div class="sstitle">Zutaten</div>${r.ings.map(([n,a,u])=>`<div class="ing-row"><span>${n}</span><span style="color:var(--rose);font-weight:bold">${a} ${u}</span></div>`).join("")}</div>
+    <div class="ssec" style="margin-top:8px"><div class="sstitle">Zubereitung</div>${r.steps.map((s,i)=>`<div class="step-row"><div class="snum">${i+1}</div><div class="stxt">${s}</div></div>`).join("")}</div>
+    ${r.tip?`<div class="stip">${r.tip}</div>`:""}
+    <div style="height:16px"></div>
+  </div></div>`;
+}
+function openRecipe(k){state.recipe=k;render()}
+function closeRecipe(){state.recipe=null;render()}
+function maybeClose(e){if(e.target.classList.contains("overlay"))closeRecipe()}
+
+// ─── HEUTE ─────────────────────────────────
+function renderHeute(){
+  const day=cycleDay(),phase=day?getPhase(day):null,sp=day?getSport(day):null;
+  const key=todayKey(),sc=state.superChecks[key]||{},mady=state.madyLog[key]||false;
+  const meals=todayMeals(),stim=isStimActive(),sd=stimDay();
+  const done=Object.values(sc).filter(Boolean).length;
+  const tkcal=136+meals.f[2]+meals.m[2]+meals.a[2];
+  return`
+    ${phase&&!stim?`<div class="card" style="border-left:4px solid ${phase.color}"><div class="ct">${phase.emoji} ${phase.name}</div><div style="font-size:13px;color:var(--text-soft);margin-bottom:4px">${phase.desc}</div><div style="font-size:12px;color:#B8927C;font-style:italic">💡 ${phase.tip}</div></div>`:""}
+    ${stim?`<div class="card" style="background:#FFF5F5;border-left:4px solid var(--stim)"><div class="ct stim">💉 Stimulationsphase – Tag ${sd}</div>${state.stim.afterTransfer?`<div style="background:#FFEBEE;border-radius:10px;padding:8px;font-size:13px;color:var(--stim);font-weight:bold;margin-bottom:6px">🌸 Nach dem Transfer – Ruhe!</div>`:""}<div style="font-size:13px;color:#C62828">Nur Yoga + sanftes Spazieren erlaubt</div></div>`:""}
+    <div class="card"><div class="ct">🧘 Mady Morrison – Heute</div><div style="display:flex;align-items:center;justify-content:space-between"><div><div style="font-size:15px;font-weight:bold;color:#375623">Video ${day||1}</div><div style="font-size:11px;color:var(--text-soft)">April 2026 Yogaplan</div></div><button class="btn ${mady?"ok":"pri"} sm" onclick="toggleMady()">${mady?"✅ Gemacht!":"Markieren"}</button></div></div>
+    ${sp?`<div class="card"><div class="ct">${stim?"💉":"🏃"} Sport heute</div>${sportRows(sp,stim)}${stim?`<div style="margin-top:8px;font-size:12px;color:var(--stim);font-style:italic">⚠️ Keine intensiven Sportarten!</div>`:sp?.note?`<div style="margin-top:6px;font-size:12px;color:#B8927C;font-style:italic">💡 ${sp.note}</div>`:""}</div>`:""}
+    <div class="card"><div class="ct">⭐ KiWu-Superfoods (${done}/${SUPERFOODS.length})</div>
+      ${SUPERFOODS.map(sf=>{const d=sc[sf.id],fb=stim&&sf.stimForbid;return`<div class="chkrow ${fb?"forbidden":d?"done":"todo"}" onclick="${fb?"":"toggleSuper('"+sf.id+"')"}"><div class="cc ${fb?"warn":d?"done":"todo"}">${fb?"🚫":d?"✓":""}</div><div style="flex:1"><div style="font-size:13px;font-weight:bold">${sf.name}</div><div style="font-size:11px;color:var(--text-soft)">${sf.desc}</div>${fb?`<div style="font-size:10px;color:var(--stim);font-weight:bold">⛔ Verboten in Stimulationsphase!</div>`:sf.warn?`<div style="font-size:10px;color:var(--orange);font-weight:bold">${sf.warn}</div>`:""}</div></div>`}).join("")}
+    </div>
+    <div class="card"><div class="ct">🥗 Mahlzeiten heute – antippen für Rezept</div>
+      <div class="mrow" onclick="openRecipe('morgen')" style="background:#FFF8F0"><div class="ml"><div class="mtype">🌅 Morgenritual</div><div class="mname">🥛 Kefir + Kiwi</div><div class="mhl">Probiotika + Vitamin C</div></div><div style="display:flex;align-items:center;gap:5px"><div class="mkcal">136 kcal</div><div style="color:var(--rose-light);font-size:14px">›</div></div></div>
+      ${mealRow("☀️ Frühstück",meals.f)}${mealRow("🌞 Mittagessen",meals.m)}${mealRow("🌙 Abendessen",meals.a)}
+      <div style="display:flex;justify-content:space-between;padding:10px 10px 4px;border-top:2px solid #F5EEF8;margin-top:4px"><div style="font-size:13px;font-weight:bold;color:var(--rose)">Gesamt Mahlzeiten</div><div style="font-size:13px;font-weight:bold;color:var(--rose)">${tkcal} kcal</div></div>
+    </div>
+    <div style="text-align:center;padding:12px;font-size:12px;color:var(--rose);cursor:pointer" onclick="setTab('tracker')">+ Eigene Mahlzeiten tracken & KI-Feedback →</div>
+  `;
+}
+
+// ─── TRACKER ───────────────────────────────
+function renderTracker(){
+  const key=todayKey(),logs=state.tracker[key]||[];
+  const tKcal=logs.reduce((s,l)=>s+l.kcal,0),tProt=logs.reduce((s,l)=>s+(l.prot||0),0);
+  const kcalGoal=1700,protGoal=65;
+  const kPct=Math.min(100,Math.round(tKcal/kcalGoal*100)),pPct=Math.min(100,Math.round(tProt/protGoal*100));
+  const kCol=kPct>110?"#E57373":kPct>=80?"#66BB6A":"#5C9BD6";
+  const q=state.trackerSearch.toLowerCase();
+  const foods=q?BUILTIN_FOODS.filter(f=>f.n.toLowerCase().includes(q)):BUILTIN_FOODS;
+  const sel=state.trackerSelected;
+  return`
+    <div class="card" style="background:linear-gradient(135deg,#F0F7FF,#FDF0F5)">
+      <div class="ct">📊 Heute – ${tKcal} kcal / ${tProt}g Protein</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <div><div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:3px"><span style="color:var(--text-soft)">Kalorien</span><span style="color:${kCol};font-weight:bold">${tKcal}/${kcalGoal}</span></div><div class="pbar-wrap"><div class="pbar" style="width:${kPct}%;background:${kCol}"></div></div></div>
+        <div><div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:3px"><span style="color:var(--text-soft)">Protein</span><span style="color:var(--blue);font-weight:bold">${tProt}g/${protGoal}g</span></div><div class="pbar-wrap"><div class="pbar" style="width:${pPct}%;background:var(--blue)"></div></div></div>
+      </div>
+    </div>
+    ${logs.length?`
+    <div class="card"><div class="ct">🍽 Heute geloggt</div>
+      ${logs.map((l,i)=>`<div class="log-row"><div><div style="font-size:13px;font-weight:bold">${l.name}</div><div style="font-size:11px;color:var(--text-soft)">${l.amount} ${l.unit||""} · ${l.kcal} kcal${l.prot?` · ${l.prot}g Prot`:""} · ${l.time} <span class="src-label src-${l.src||'list'}">${l.src==="off"?"🌍 OFF":l.src==="my"?"⭐ Eigene":l.src==="manual"?"✏️ Manuell":"📋 Liste"}</span></div></div><button class="log-del" onclick="delLog(${i})">×</button></div>`).join("")}
+      <div style="display:flex;justify-content:space-between;padding:8px 0 2px;border-top:2px solid #F5EEF8;margin-top:4px"><span style="font-size:13px;font-weight:bold;color:var(--rose)">Gesamt</span><span style="font-size:13px;font-weight:bold;color:var(--rose)">${tKcal} kcal · ${tProt}g Prot</span></div>
+    </div>
+    <div class="card"><div class="ct">🌸 KiWu-Analyse von Claude</div>
+      ${state.feedbackLoading?`<div class="spinner"><div class="spin"></div>Analysiere…</div>`:state.feedback?renderFB():`<div style="font-size:12px;color:var(--text-soft);margin-bottom:10px">Claude analysiert deine Mahlzeiten passend zur Zyklusphase.</div>`}
+      ${!state.feedbackLoading?`<button class="btn pri full" onclick="getFeedback()">${state.feedback?"🔄 Neu analysieren":"🌸 KiWu-Analyse starten"}</button>`:""}
+    </div>`:""}
+    <div class="card"><div class="ct">➕ Mahlzeit hinzufügen</div>
+      <div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:12px">
+        <button class="pill ${state.trackerTab==='list'?'on':'off'}" onclick="setTTab('list')">📋 KiWu-Liste</button>
+        <button class="pill ${state.trackerTab==='off'?'blue-on':'off'}" onclick="setTTab('off')">🌍 Open Food Facts</button>
+        <button class="pill ${state.trackerTab==='myfoods'?'on':'off'}" onclick="setTTab('myfoods')">⭐ Meine DB</button>
+        <button class="pill ${state.trackerTab==='manual'?'on':'off'}" onclick="setTTab('manual')">✏️ Manuell</button>
+      </div>
+      ${state.trackerTab==='list'?`
+        <div class="lbl">Suchen (${BUILTIN_FOODS.length} Lebensmittel)</div>
+        <input class="inp" style="margin-bottom:8px" placeholder="z.B. Quinoa, Tofu…" value="${state.trackerSearch}" oninput="listSearch(this.value)">
+        <div class="flist">${foods.length===0?`<div style="padding:12px;text-align:center;font-size:12px;color:var(--text-soft)">Kein Treffer</div>`:""}${foods.map(f=>`<div class="fitem ${sel?.id===f.id?'selected':''}" onclick="listSel('${f.id}')"><div><div class="fname">${f.n}${f.stimWarn&&isStimActive()?" ⛔":""}</div><div class="fcat">${f.cat}</div></div><div class="fkcal">${f.kcal}/100${f.u}</div></div>`).join("")}</div>
+        ${sel?`<div style="background:var(--rose-bg);border-radius:10px;padding:10px;margin-bottom:10px"><div style="font-size:13px;font-weight:bold;color:var(--rose)">${sel.n}</div><div style="font-size:11px;color:var(--text-soft)">${sel.kcal} kcal & ${sel.p}g Prot/100${sel.u}</div></div>
+        <div class="lbl">Menge (${sel.u==="Stück"?"Anzahl":sel.u})</div><input type="number" id="list-amt" class="inp" style="margin-bottom:10px" placeholder="Menge" value="${state.trackerAmount}">
+        <button class="btn pri full" onclick="addFromList()">Hinzufügen ➕</button>`:""}
+      `:""}
+      ${state.trackerTab==='off'?`
+        <div style="background:#E8F5E9;border-radius:10px;padding:8px 10px;margin-bottom:10px;font-size:11px;color:#2E7D32">🌍 Open Food Facts – 3 Mio. Produkte, kostenlos & open source</div>
+        <div style="display:flex;gap:8px;margin-bottom:8px"><input id="off-inp" class="inp" placeholder="z.B. Alpro Hafer, Rote Beete…" value="${state.offSearch}" style="flex:1" onkeydown="if(event.key==='Enter')searchOFF()"><button class="btn blue sm" onclick="searchOFF()">Suchen</button></div>
+        ${state.offLoading?`<div class="spinner"><div class="spin"></div>Suche läuft…</div>`:""}
+        ${state.offResults.length?`<div class="flist">${state.offResults.map((p,i)=>`<div class="fitem ${state.offSelected?.i===i?'selected':''}" onclick="offSel(${i})"><div><div class="fname">${p.name}</div><div class="fcat">🌍 Open Food Facts</div></div><div class="fkcal">${p.kcal}/100g</div></div>`).join("")}</div>`:""}
+        ${state.offSelected?`<div style="background:#E8F5E9;border-radius:10px;padding:10px;margin-bottom:10px"><div style="font-size:13px;font-weight:bold;color:#2E7D32">${state.offSelected.name}</div><div style="font-size:11px;color:var(--text-soft)">${state.offSelected.kcal} kcal & ${state.offSelected.prot}g Prot/100g</div></div>
+        <div class="lbl">Menge (g)</div><input type="number" id="off-amt" class="inp" style="margin-bottom:10px" placeholder="Gramm">
+        <div style="display:flex;gap:8px"><button class="btn blue full" onclick="addFromOFF()">Hinzufügen ➕</button><button class="btn gray sm" onclick="saveToMy()">⭐ In Meine DB</button></div>`:""}
+      `:""}
+      ${state.trackerTab==='myfoods'?renderMyTab():""}
+      ${state.trackerTab==='manual'?`
+        <div class="lbl">Name</div><input class="inp" id="man-name" style="margin-bottom:8px" placeholder="z.B. Mamas Linsensuppe">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
+          <div><div class="lbl">Kalorien (kcal)</div><input type="number" id="man-kcal" class="inp" placeholder="z.B. 380"></div>
+          <div><div class="lbl">Protein (g)</div><input type="number" id="man-prot" class="inp" placeholder="z.B. 18"></div>
+        </div>
+        <button class="btn pri full" onclick="addManual()">Hinzufügen ➕</button>
+        <div style="margin-top:10px;font-size:11px;color:var(--text-soft)">💡 Tipp: Häufig gegessene Gerichte in "Meine DB" anlegen – dann nur noch einmal eintragen!</div>
+      `:""}
+    </div>
+  `;
+}
+function renderMyTab(){
+  const q=state.mySearch.toLowerCase();
+  const all=state.customFoods;
+  const flt=q?all.filter(f=>f.name.toLowerCase().includes(q)):all;
+  const sel=state.mySelected;
+  if(state.myFoodMode==='add')return renderAddFood();
+  return`
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><div style="font-size:12px;color:var(--text-soft)">${all.length} eigene Lebensmittel</div><button class="btn pri sm" onclick="setMyMode('add')">+ Neu anlegen</button></div>
+    ${all.length===0?`<div style="text-align:center;padding:20px;font-size:13px;color:var(--text-soft)">Noch keine eigenen Lebensmittel.<br>Füge deine ersten hinzu! ⭐</div>`:`
+      <input class="inp" style="margin-bottom:8px" placeholder="Eigene Lebensmittel suchen…" value="${state.mySearch}" oninput="mySearch(this.value)">
+      <div class="flist">${flt.map(f=>`<div class="fitem ${sel?.id===f.id?'selected':''}" onclick="mySel('${f.id}')"><div><div class="fname">${f.name}</div><div class="fcat">⭐ ${f.cat||'Eigene'}</div></div><div style="display:flex;align-items:center;gap:4px"><div class="fkcal">${f.kcal}/100${f.unit}</div><button class="fitem-del" onclick="event.stopPropagation();delMyFood('${f.id}')">×</button></div></div>`).join("")}</div>
+    `}
+    ${sel?`<div style="background:var(--rose-bg);border-radius:10px;padding:10px;margin-bottom:10px"><div style="font-size:13px;font-weight:bold;color:var(--rose)">${sel.name}</div><div style="font-size:11px;color:var(--text-soft)">${sel.kcal} kcal & ${sel.prot}g Prot/100${sel.unit}</div></div>
+    <div class="lbl">Menge (${sel.unit})</div><input type="number" id="my-amt" class="inp" style="margin-bottom:10px" placeholder="Menge">
+    <button class="btn pri full" onclick="addFromMy()">Hinzufügen ➕</button>`:""}
+  `;
+}
+function renderAddFood(){
+  const f=state.newFood;
+  return`<div style="background:var(--rose-bg);border-radius:12px;padding:14px">
+    <div style="font-size:13px;font-weight:bold;color:var(--rose);margin-bottom:12px">⭐ Neues Lebensmittel</div>
+    <div class="lbl">Name</div><input id="nf-name" class="inp" style="margin-bottom:8px" placeholder="z.B. Mein grüner Smoothie" value="${f.name}">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+      <div><div class="lbl">kcal/100g</div><input type="number" id="nf-kcal" class="inp" placeholder="z.B. 250" value="${f.kcal}"></div>
+      <div><div class="lbl">Protein g/100g</div><input type="number" id="nf-prot" class="inp" placeholder="z.B. 5" value="${f.prot}"></div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
+      <div><div class="lbl">Einheit</div><select id="nf-unit" class="inp"><option value="g" ${f.unit==="g"?"selected":""}>g</option><option value="ml" ${f.unit==="ml"?"selected":""}>ml</option><option value="Stück" ${f.unit==="Stück"?"selected":""}>Stück</option></select></div>
+      <div><div class="lbl">Kategorie</div><select id="nf-cat" class="inp">${["Eigene","Getreide","Gemüse","Obst","Protein","Milch","Hülsenfrüchte","Nüsse","Fertiggerichte","Snacks","Getränke"].map(c=>`<option value="${c}" ${f.cat===c?"selected":""}>${c}</option>`).join("")}</select></div>
+    </div>
+    <div style="display:flex;gap:8px"><button class="btn pri full" onclick="saveNewFood()">Speichern ✅</button><button class="btn gray sm" onclick="setMyMode('browse')">Abbrechen</button></div>
+  </div>`;
+}
+
+function renderFB(){
+  const fb=state.feedback;
+  if(fb.error)return`<div class="warn-box">${fb.error}</div>`;
+  const cls=fb.bewertung==="super"||fb.bewertung==="gut"?"fb-good":fb.bewertung==="ok"?"fb-ok":"fb-warn";
+  const emoji={"super":"🌟","gut":"✅","ok":"💛","verbesserbar":"⚠️"}[fb.bewertung]||"💡";
+  return`<div class="fb-card ${cls}">
+    <div style="font-size:15px;font-weight:bold;color:var(--rose);margin-bottom:8px">${emoji} ${fb.lob||""}</div>
+    <div style="display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap">
+      <span class="tag" style="background:${fb.kcal_status==="optimal"?"#E8F5E9":"#FFF8E1"};color:${fb.kcal_status==="optimal"?"#2E7D32":"#E65100"}">🔥 ${fb.kcal_status}</span>
+      <span class="tag" style="background:${fb.protein_status==="ausreichend"?"#E8F5E9":"#FFF8E1"};color:${fb.protein_status==="ausreichend"?"#2E7D32":"#E65100"}">💪 Protein: ${fb.protein_status}</span>
+    </div>
+    ${fb.phasen_tipps?.length?`<div style="font-size:11px;font-weight:bold;color:var(--text-soft);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Phasen-Tipps</div>${fb.phasen_tipps.map(t=>`<div class="fb-row">🌸 ${t}</div>`).join("")}`:""}
+    ${fb.verbesserungen?.length?`<div style="font-size:11px;font-weight:bold;color:var(--text-soft);text-transform:uppercase;letter-spacing:1px;margin:8px 0 4px">Verbesserungen</div>${fb.verbesserungen.map(v=>`<div class="fb-row">💡 ${v}</div>`).join("")}`:""}
+    ${fb.warnungen?.length?`<div class="warn-box" style="margin-top:8px">${fb.warnungen.map(w=>`⚠️ ${w}`).join("<br>")}</div>`:""}
+    ${fb.superfood_tipp?`<div style="background:#F0FFF4;border-radius:10px;padding:8px;margin-top:8px;font-size:12px;color:#2E7D32">⭐ ${fb.superfood_tipp}</div>`:""}
+  </div>`;
+}
+
+// ─── PLAN ──────────────────────────────────
+function renderPlan(){
+  return`<div class="card">
+    <div class="ct">📋 Wochenplan – antippen für Rezept</div>
+    <div style="background:#F0FFF4;border-radius:10px;padding:8px 10px;margin-bottom:10px;font-size:11px;color:#2E7D32">✅ Alle Kalorien Zutat für Zutat berechnet (BLS/USDA).</div>
+    ${Object.entries(MEALS).map(([day,m])=>{
+      const tk=136+m.f[2]+m.m[2]+m.a[2];
+      return`<div style="padding:6px 0;border-bottom:1px solid #F5EEF8">
+        <div style="display:flex;justify-content:space-between;margin-bottom:3px"><div style="font-size:12px;font-weight:bold;color:var(--rose)">${day}</div><div style="font-size:11px;color:var(--text-soft)">Mahlzeiten: ${tk} kcal</div></div>
+        <div class="mrow" onclick="openRecipe('morgen')" style="background:#FFF8F0"><div class="ml"><div class="mtype">🌅 Morgenritual</div><div class="mname">Kefir + Kiwi</div></div><div style="display:flex;align-items:center;gap:5px"><div class="mkcal">136 kcal</div><div style="color:var(--rose-light);font-size:14px">›</div></div></div>
+        ${mealRow("☀️",m.f)}${mealRow("🌞",m.m)}${mealRow("🌙",m.a)}
+      </div>`;}).join("")}
+  </div>`;
+}
+
+// ─── IVF ───────────────────────────────────
+function renderIVF(){
+  const stim=isStimActive(),sd=stimDay();
+  return`
+    <div class="card">
+      <div class="ct ${stim?"stim":""}">💉 Stimulationsphase ${stim?`– Aktiv (Tag ${sd})`:""}</div>
+      <div class="toggle-row"><div><div style="font-size:13px;font-weight:bold">${stim?"✅ Aktiv":"Aktivieren"}</div><div style="font-size:11px;color:var(--text-soft)">Passt Sport, Ernährung & Superfoods an</div></div><label class="toggle"><input type="checkbox" ${stim?"checked":""} onchange="toggleStim()"><span class="tslider stim-t"></span></label></div>
+      ${stim?`<hr style="border:none;border-top:1px solid #F5EEF8;margin:8px 0">
+        <div class="lbl">Stimulations-Startdatum</div><input type="date" class="inp" style="margin-bottom:10px" value="${state.stim.startDate?new Date(state.stim.startDate).toISOString().split('T')[0]:''}" onchange="setStimDate('start',this.value)">
+        <div class="lbl">Geplantes ET-Datum</div><input type="date" class="inp" style="margin-bottom:10px" value="${state.stim.etDate?new Date(state.stim.etDate).toISOString().split('T')[0]:''}" onchange="setStimDate('et',this.value)">
+        <div class="toggle-row"><div><div style="font-size:13px;font-weight:bold">🌸 Nach Transfer</div><div style="font-size:11px;color:var(--text-soft)">Besondere Ruhe-Empfehlungen</div></div><label class="toggle"><input type="checkbox" ${state.stim.afterTransfer?"checked":""} onchange="toggleAT()"><span class="tslider stim-t"></span></label></div>
+      `:""}
+    </div>
+    ${stim?`
+    <div class="card" style="background:#FFF5F5;border-left:4px solid var(--stim)">
+      <div class="ct stim">🏃 Sport & Ernährung</div>
+      ${sportRows(null,true)}
+      <div class="warn-box" style="margin-top:8px">⛔ MACA verboten! ⛔ Alkohol verboten! ☕ Koffein max. 1 Tasse/Tag.</div>
+    </div>
+    ${state.stim.afterTransfer?`<div class="card" style="background:#FFF5F5;border-left:4px solid var(--stim)"><div class="ct stim">🌸 Nach dem Transfer</div>${["🧘 Nur Mady Yoga – ganz sanft","🚶 Max. 15 Min Spazieren","❌ Kein intensiver Sport (mind. 3 Tage)","🌡️ Wärme gut – Wärmflasche erlaubt","💊 Progesteron+ASS nach Plan","💧 2,5L Wasser täglich"].map(t=>`<div class="fb-row">${t}</div>`).join("")}</div>`:""}
+    `:`<div class="card" style="background:linear-gradient(135deg,#FDF0F5,#F8F4FF)"><div class="ct">ℹ️ Wann aktivieren?</div><div class="info-row">📅 Am ersten Tag der Hormoninjektionen</div><div class="info-row">🔄 App passt sich sofort an: Sport, Ernährung, Superfoods</div><div class="info-row">⭐ Maca wird automatisch als verboten markiert</div></div>`}
+  `;
+}
+
+// ─── KIWU (mit Sync-Info & Export/Import) ──
+function renderKiWu(){
+  const syncOk=typeof window.storage!=='undefined';
+  return`
+    <div class="sync-card">
+      <div style="font-size:13px;font-weight:bold;color:#2E7D32;margin-bottom:8px">${syncOk?"☁️ Cloud-Sync aktiv":"💾 Lokaler Speicher"}</div>
+      ${syncOk?`
+        <div class="sync-row"><span class="sync-key">Synchronisation</span><span class="sync-val">✅ Geräteübergreifend</span></div>
+        <div class="sync-row"><span class="sync-key">Gespeichert</span><span class="sync-val">${fmtSaved(state.lastSaved)}</span></div>
+        <div class="sync-row"><span class="sync-key">Eigene Lebensmittel</span><span class="sync-val">${state.customFoods.length} Einträge</span></div>
+      `:`
+        <div style="font-size:12px;color:#E65100;margin-bottom:8px">Auf GitHub Pages wird localStorage genutzt – Daten sind gerätespezifisch. Nutze Export/Import zum Übertragen.</div>
+      `}
+      <div style="font-size:11px;color:#2E7D32;margin-top:8px;line-height:1.6">Die App speichert automatisch nach jeder Änderung. Kein manuelles Speichern nötig. ✅</div>
+    </div>
+
+    <div class="card">
+      <div class="ct">📤 Daten exportieren & importieren</div>
+      <div style="font-size:12px;color:var(--text-soft);margin-bottom:12px">Zum Übertragen auf andere Geräte (z.B. auf GitHub Pages): Daten als JSON exportieren und auf dem anderen Gerät importieren.</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">
+        <button class="btn pri full" onclick="exportData()">📤 Exportieren</button>
+        <button class="btn gray full" onclick="document.getElementById('import-inp').click()">📥 Importieren</button>
+      </div>
+      <input type="file" id="import-inp" accept=".json" style="display:none" onchange="importData(this)">
+      <div style="font-size:11px;color:var(--text-soft);line-height:1.6">Export lädt eine JSON-Datei herunter. Import liest diese Datei wieder ein. Alle Einträge, Tracker-Daten und eigene Lebensmittel werden übertragen.</div>
+    </div>
+
+    <div class="card" style="background:linear-gradient(135deg,#FDF0F5,#F8F4FF)">
+      <div class="ct">🌸 Deine Situation</div>
+      <div class="info-row">📅 42 Jahre | 🌿 Vegetarierin | 📍 Kaltenkirchen</div>
+      <div class="info-row">🧬 Essentielle Thrombozythämie (JAK2 V617F)</div>
+      <div class="info-row">💊 ASS 100mg täglich | 🔬 IVF – noch keine Einnistung</div>
+    </div>
+    <div class="card"><div class="ct">🎯 Nächste Schritte</div>
+      ${[["1","Bluttest Zyklustag 3","Hormonstatus + Ferritin","#E57373"],["2","Reproduktionsmediziner","ET, ERA-Test, Heparin, AMH","#5C9BD6"],["3","Hämatologe","Thrombozyten 656 – vor IVF!","#AB77C4"],["4","Eisen-Bisglycnat","Ferritin=16 – dringend!","#FF8F00"],["5","Vitamin D3+K2","Bestellt ✅ – erst messen!","#66BB6A"]].map(([n,t,d,c])=>`<div class="step-r"><div class="circle" style="background:${c}">${n}</div><div><div style="font-size:13px;font-weight:bold">${t}</div><div style="font-size:11px;color:var(--text-soft)">${d}</div></div></div>`).join("")}
+    </div>
+    <div style="text-align:center;padding:14px;font-size:11px;color:var(--text-soft)">KiWu-App v5.0 · Alle Daten sicher gespeichert 🌸</div>
+  `;
+}
+
+// ═══════════════════════════════════════════
+// ACTIONS
+// ═══════════════════════════════════════════
+function calNav(dir){
+  let {year,month}=state.calMonth;
+  month+=dir;
+  if(month<0){month=11;year--;}
+  if(month>11){month=0;year++;}
+  state.calMonth={year,month};render();
+}
+function setSportPhase(i){state.calSportPhase=i;render()}
+async function toggleBleeding(key){
+  state.bleedingDays[key]=!state.bleedingDays[key];
+  if(!state.bleedingDays[key])delete state.bleedingDays[key];
+  render();
+  await saveKey('bd',state.bleedingDays);
+}
+async function setNewDay1(){
+  const v=document.getElementById("new-day1")?.value;if(!v)return;
+  state.cycleDay1=new Date(v);
+  await saveKey('cd1',state.cycleDay1.toISOString());render();
+}
+function setTab(t){state.tab=t;state.feedback=null;render();window.scrollTo(0,0)}
+
+async function toggleSuper(id){
+  const k=todayKey();
+  if(!state.superChecks[k])state.superChecks[k]={};
+  state.superChecks[k][id]=!state.superChecks[k][id];
+  render();
+  await saveKey('sc',state.superChecks);
+}
+async function toggleMady(){
+  const k=todayKey();state.madyLog[k]=!state.madyLog[k];render();
+  await saveKey('ml',state.madyLog);
+}
+async function toggleStim(){
+  state.stim.active=!state.stim.active;
+  if(state.stim.active&&!state.stim.startDate)state.stim.startDate=today().toISOString();
+  if(!state.stim.active)state.stim.afterTransfer=false;
+  render();await saveKey('stim',state.stim);
+}
+async function setStimDate(t,v){
+  if(t==='start')state.stim.startDate=v?new Date(v).toISOString():null;
+  else state.stim.etDate=v?new Date(v).toISOString():null;
+  await saveKey('stim',state.stim);
+}
+async function toggleAT(){state.stim.afterTransfer=!state.stim.afterTransfer;render();await saveKey('stim',state.stim)}
+
+function setTTab(t){state.trackerTab=t;state.trackerSelected=null;state.offSelected=null;state.mySelected=null;state.trackerSearch="";render()}
+function listSearch(v){state.trackerSearch=v;state.trackerSelected=null;render()}
+function mySearch(v){state.mySearch=v;state.mySelected=null;render()}
+function setMyMode(m){state.myFoodMode=m;state.newFood={name:"",kcal:"",prot:"",unit:"g",cat:"Eigene"};render()}
+
+function listSel(id){
+  state.trackerSelected=BUILTIN_FOODS.find(f=>f.id===id)||null;state.trackerAmount="";render();
+  setTimeout(()=>{const el=document.getElementById("list-amt");if(el){el.focus();el.scrollIntoView({behavior:"smooth",block:"center"})}},100);
+}
+async function addFromList(){
+  const sel=state.trackerSelected;if(!sel)return;
+  const amt=parseFloat(document.getElementById("list-amt")?.value);
+  if(!amt||amt<=0){alert("Bitte Menge eingeben");return}
+  const f=sel.u==="Stück"?amt:(amt/100);
+  addLog({name:sel.n,kcal:Math.round(sel.kcal*f),prot:Math.round(sel.p*f*10)/10,amount:amt,unit:sel.u,src:"list"});
+  state.trackerSelected=null;state.trackerAmount="";state.trackerSearch="";render();
+}
+
+async function searchOFF(){
+  const q=(document.getElementById("off-inp")?.value||state.offSearch).trim();
+  if(!q){alert("Bitte Suchbegriff eingeben");return}
+  state.offSearch=q;state.offLoading=true;state.offResults=[];state.offSelected=null;render();
+  try{
+    const url=`https://world.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(q)}&json=1&lc=de&fields=product_name,nutriments&page_size=20`;
+    const data=await(await fetch(url)).json();
+    state.offResults=(data.products||[]).filter(p=>p.product_name&&(p.nutriments?.["energy-kcal_100g"]||0)>0).slice(0,15).map(p=>({name:p.product_name,kcal:Math.round(p.nutriments["energy-kcal_100g"]||0),prot:Math.round((p.nutriments["proteins_100g"]||0)*10)/10}));
+    if(!state.offResults.length)state.offResults=[{name:"Kein Treffer – anderes Stichwort versuchen",kcal:0,_empty:true}];
+  }catch{state.offResults=[{name:"⚠️ Netzwerkfehler – erneut versuchen",kcal:0,_empty:true}]}
+  state.offLoading=false;render();
+}
+function offSel(i){const p=state.offResults[i];if(p._empty)return;state.offSelected={...p,i};state.offAmount="";render();setTimeout(()=>{const el=document.getElementById("off-amt");if(el){el.focus();el.scrollIntoView({behavior:"smooth",block:"center"})}},100)}
+async function addFromOFF(){
+  const sel=state.offSelected;if(!sel)return;
+  const amt=parseFloat(document.getElementById("off-amt")?.value);
+  if(!amt||amt<=0){alert("Bitte Menge eingeben");return}
+  addLog({name:sel.name,kcal:Math.round(sel.kcal*amt/100),prot:Math.round((sel.prot||0)*amt/100*10)/10,amount:amt,unit:"g",src:"off"});
+  state.offSelected=null;render();
+}
+async function saveToMy(){
+  const sel=state.offSelected;if(!sel)return;
+  state.customFoods.push({id:"my_"+Date.now(),name:sel.name,kcal:sel.kcal,prot:sel.prot||0,unit:"g",cat:"Open Food Facts"});
+  await saveKey('cf',state.customFoods);
+  alert(`"${sel.name}" in Meine DB gespeichert! ⭐`);render();
+}
+
+function mySel(id){state.mySelected=state.customFoods.find(f=>f.id===id)||null;state.myAmount="";render();setTimeout(()=>{const el=document.getElementById("my-amt");if(el){el.focus();el.scrollIntoView({behavior:"smooth",block:"center"})}},100)}
+async function addFromMy(){
+  const sel=state.mySelected;if(!sel)return;
+  const amt=parseFloat(document.getElementById("my-amt")?.value);
+  if(!amt||amt<=0){alert("Bitte Menge eingeben");return}
+  const f=sel.unit==="Stück"?amt:(amt/100);
+  addLog({name:sel.name,kcal:Math.round(sel.kcal*f),prot:Math.round((sel.prot||0)*f*10)/10,amount:amt,unit:sel.unit,src:"my"});
+  state.mySelected=null;render();
+}
+async function saveNewFood(){
+  const name=document.getElementById("nf-name")?.value?.trim();
+  const kcal=parseInt(document.getElementById("nf-kcal")?.value);
+  const prot=parseFloat(document.getElementById("nf-prot")?.value)||0;
+  const unit=document.getElementById("nf-unit")?.value||"g";
+  const cat=document.getElementById("nf-cat")?.value||"Eigene";
+  if(!name||!kcal){alert("Bitte Name und Kalorien eingeben");return}
+  state.customFoods.push({id:"my_"+Date.now(),name,kcal,prot,unit,cat});
+  await saveKey('cf',state.customFoods);
+  state.myFoodMode="browse";render();
+}
+async function delMyFood(id){
+  if(!confirm("Löschen?"))return;
+  state.customFoods=state.customFoods.filter(f=>f.id!==id);
+  if(state.mySelected?.id===id)state.mySelected=null;
+  await saveKey('cf',state.customFoods);render();
+}
+async function addManual(){
+  const name=document.getElementById("man-name")?.value?.trim();
+  const kcal=parseInt(document.getElementById("man-kcal")?.value);
+  const prot=parseFloat(document.getElementById("man-prot")?.value)||0;
+  if(!name||!kcal){alert("Bitte Name und Kalorien eingeben");return}
+  addLog({name,kcal,prot,amount:"–",unit:"",src:"manual"});render();
+}
+async function addLog(entry){
+  const key=todayKey();
+  if(!state.tracker[key])state.tracker[key]=[];
+  state.tracker[key].push({...entry,time:nowTime()});
+  state.feedback=null;
+  await saveKey('tr',state.tracker);
+}
+async function delLog(i){
+  const key=todayKey();state.tracker[key]=(state.tracker[key]||[]).filter((_,j)=>j!==i);
+  state.feedback=null;await saveKey('tr',state.tracker);render();
+}
+
+// ─── EXPORT / IMPORT ───────────────────────
+function exportData(){
+  const payload={
+    version:"5.0",exported:new Date().toISOString(),
+    cycleDay1:state.cycleDay1?.toISOString()||null,
+    superChecks:state.superChecks,
+    madyLog:state.madyLog,
+    tracker:state.tracker,
+    customFoods:state.customFoods,
+    stim:state.stim,
+  };
+  const blob=new Blob([JSON.stringify(payload,null,2)],{type:"application/json"});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement("a");
+  a.href=url;a.download=`kiwu-app-backup-${new Date().toISOString().split('T')[0]}.json`;
+  a.click();URL.revokeObjectURL(url);
+}
+async function importData(input){
+  const file=input.files?.[0];if(!file)return;
+  try{
+    const text=await file.text();
+    const data=JSON.parse(text);
+    if(!data.version){alert("Ungültige Datei");return}
+    if(!confirm("Alle aktuellen Daten werden überschrieben. Fortfahren?"))return;
+    state.cycleDay1=data.cycleDay1?new Date(data.cycleDay1):null;
+    state.superChecks=data.superChecks||{};
+    state.madyLog=data.madyLog||{};
+    state.tracker=data.tracker||{};
+    state.customFoods=data.customFoods||[];
+    if(data.stim)state.stim={...state.stim,...data.stim};
+    await Promise.all([
+      saveKey('cd1',state.cycleDay1?.toISOString()||null),
+      saveKey('sc',state.superChecks),
+      saveKey('ml',state.madyLog),
+      saveKey('tr',state.tracker),
+      saveKey('cf',state.customFoods),
+      saveKey('stim',state.stim),
+    ]);
+    alert("✅ Import erfolgreich! Alle Daten wurden übertragen.");
+    render();
+  }catch(e){alert("Fehler beim Import: "+e.message)}
+  input.value="";
+}
+
+// ─── AI FEEDBACK ───────────────────────────
+async function getFeedback(){
+  const key=todayKey(),logs=state.tracker[key]||[];
+  if(!logs.length){alert("Bitte zuerst Mahlzeiten eintragen!");return}
+  state.feedbackLoading=true;state.feedback=null;render();
+  const tKcal=logs.reduce((s,l)=>s+l.kcal,0),tProt=logs.reduce((s,l)=>s+(l.prot||0),0);
+  const day=cycleDay(),phase=day?getPhase(day).name:"Unbekannt";
+  const stim=isStimActive(),sd=stimDay();
+  const sc=state.superChecks[key]||{};
+  const missing=SUPERFOODS.filter(s=>!sc[s.id]&&!(stim&&s.stimForbid)).map(s=>s.name.replace(/[^\w\säöüÄÖÜ\-]/g,"").trim()).join(", ");
+  const mealList=logs.map(l=>`- ${l.name}: ${l.kcal} kcal, ${l.prot||0}g Prot`).join("\n");
+  const prompt=`Du bist KiWu-Ernährungsberaterin für Sandra, 42, Essentielle Thrombozythämie (JAK2), Vegetarierin, IVF.
+Zyklusphase: ${phase}${stim?`\nSTIMULATIONSPHASE Tag ${sd}!`:""}${stim&&state.stim.afterTransfer?"\nNACH EMBRYOTRANSFER!":""}
+Mahlzeiten heute (${tKcal} kcal, ${tProt}g Prot):
+${mealList}
+Tagesziel: 1.600–1.800 kcal, mind. 65g Prot
+Fehlende Superfoods: ${missing||"keine"}
+${stim?"Maca VERBOTEN!":""}
+Antworte NUR als JSON (keine Backticks):
+{"bewertung":"super|gut|ok|verbesserbar","kcal_status":"zu wenig|optimal|zu viel","protein_status":"ausreichend|zu wenig","lob":"ein Satz","phasen_tipps":["T1","T2"],"verbesserungen":["V1","V2"],"warnungen":[],"superfood_tipp":"..."}`;
+  try{
+    const resp=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:1000,messages:[{role:"user",content:prompt}]})});
+    const data=await resp.json();
+    const txt=data.content?.find(c=>c.type==="text")?.text||"{}";
+    state.feedback=JSON.parse(txt.replace(/```json|```/g,"").trim());
+  }catch{state.feedback={error:"Analyse nicht verfügbar – erneut versuchen."}}
+  state.feedbackLoading=false;render();
+}
+
+// ─── MAIN RENDER ───────────────────────────
+function render(){
+  const day=cycleDay(),phase=day?getPhase(day):null,stim=isStimActive(),sd=stimDay();
+  const tabs=[{id:"heute",e:"🏠",l:"Heute"},{id:"zyklus",e:"📅",l:"Zyklus"},{id:"tracker",e:"🍽",l:"Tracker"},{id:"ivf",e:"💉",l:"IVF"},{id:"kiwu",e:"⭐",l:"KiWu"}];
+  let content="";
+  if(state.tab==="heute")content=renderHeute();
+  else if(state.tab==="zyklus")content=renderZyklus();
+  else if(state.tab==="tracker")content=renderTracker();
+  else if(state.tab==="ivf")content=renderIVF();
+  else if(state.tab==="kiwu")content=renderKiWu();
+
+  document.getElementById("app").innerHTML=`
+    ${state.recipe?renderRecipeModal(state.recipe):""}
+    ${!state.cycleDay1?`<div class="overlay"><div class="sheet" onclick="event.stopPropagation()" style="max-height:55vh">
+      <div class="shdr"><div class="stitle">🌸 Willkommen!</div></div>
+      <div style="padding:0 20px 16px;font-size:13px;color:var(--text-soft)">Wann war dein erster Zyklustag?</div>
+      <div style="padding:0 20px">
+        <div class="lbl">1. Zyklustag</div>
+        <input type="date" id="setup-date" class="inp" style="margin-bottom:14px" value="${today().toISOString().split('T')[0]}" max="${today().toISOString().split('T')[0]}">
+        <button class="btn pri full" onclick="setupDay1()">Zyklus starten 🌸</button>
+      </div><div style="height:20px"></div>
+    </div></div>`:""}
+    <div class="hdr ${stim?"stim-mode":""}"><div class="hi">
+      <div class="ht">🌸 Meine KiWu-App</div>
+      <div class="hd">${formatDate(today())}</div>
+      <div class="hchips">
+        ${day&&phase?`<div class="chip"><div class="chip-l">Zyklustag</div><div class="chip-v">${day}</div></div><div class="chip"><div class="chip-l">Phase</div><div class="chip-v sm">${phase.emoji} ${phase.name}</div></div>`:""}
+        ${stim?`<div class="chip"><div class="chip-l">Stimulation</div><div class="chip-v sm">💉 Tag ${sd}</div></div>`:""}
+      </div>
+      <div class="sync-badge">${storageType()} · gespeichert: ${fmtSaved(state.lastSaved)}</div>
+    </div></div>
+    <div class="nav">${tabs.map(t=>`<button class="nb ${state.tab===t.id?"active":""} ${t.id==="ivf"&&stim?"stim-active":""}" onclick="setTab('${t.id}')"><span class="ic">${t.e}</span><span>${t.l}</span></button>`).join("")}</div>
+    <div class="content">${content}</div>
+  `;
+}
+
+async function setupDay1(){
+  const v=document.getElementById("setup-date")?.value;if(!v)return;
+  state.cycleDay1=new Date(v);
+  await saveKey('cd1',state.cycleDay1.toISOString());
+  render();
+}
+
+// ─── INIT ──────────────────────────────────
+(async()=>{
+  await loadState();
+  render();
+})();
+</script>
+</body>
+</html>
