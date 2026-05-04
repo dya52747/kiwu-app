@@ -303,16 +303,19 @@ let state={
 
 async function loadState(){
   try{
-    const [cd1,sc,ml,tr,cf,stim,ls]=await Promise.all([
-      storeGet('cd1'),storeGet('sc'),storeGet('ml'),storeGet('tr'),storeGet('cf'),storeGet('stim'),storeGet('ls')
+    const [cd1,sc,ml,tr,cf,stim,ls,bd]=await Promise.all([
+      storeGet('cd1'),storeGet('sc'),storeGet('ml'),storeGet('tr'),storeGet('cf'),storeGet('stim'),storeGet('ls'),storeGet('bd')
     ]);
     state.cycleDay1=cd1?new Date(cd1):null;
     state.superChecks=sc||{};
     state.madyLog=ml||{};
     state.tracker=tr||{};
     state.customFoods=cf||[];
+    state.bleedingDays=bd||{};
     if(stim)state.stim={...state.stim,...stim};
     state.lastSaved=ls||null;
+    const n=today();
+    state.calMonth={year:n.getFullYear(),month:n.getMonth()};
     state.syncStatus='ok';
   }catch(e){
     state.syncStatus='error';
@@ -591,6 +594,25 @@ function renderKiWu(){
 // ═══════════════════════════════════════════
 // ACTIONS
 // ═══════════════════════════════════════════
+function calNav(dir){
+  let {year,month}=state.calMonth;
+  month+=dir;
+  if(month<0){month=11;year--;}
+  if(month>11){month=0;year++;}
+  state.calMonth={year,month};render();
+}
+function setSportPhase(i){state.calSportPhase=i;render()}
+async function toggleBleeding(key){
+  state.bleedingDays[key]=!state.bleedingDays[key];
+  if(!state.bleedingDays[key])delete state.bleedingDays[key];
+  render();
+  await saveKey('bd',state.bleedingDays);
+}
+async function setNewDay1(){
+  const v=document.getElementById("new-day1")?.value;if(!v)return;
+  state.cycleDay1=new Date(v);
+  await saveKey('cd1',state.cycleDay1.toISOString());render();
+}
 function setTab(t){state.tab=t;state.feedback=null;render();window.scrollTo(0,0)}
 
 async function toggleSuper(id){
@@ -783,11 +805,11 @@ Antworte NUR als JSON (keine Backticks):
 // ─── MAIN RENDER ───────────────────────────
 function render(){
   const day=cycleDay(),phase=day?getPhase(day):null,stim=isStimActive(),sd=stimDay();
-  const tabs=[{id:"heute",e:"🏠",l:"Heute"},{id:"tracker",e:"🍽",l:"Tracker"},{id:"plan",e:"📋",l:"Plan"},{id:"ivf",e:"💉",l:"IVF"},{id:"kiwu",e:"⭐",l:"KiWu"}];
+  const tabs=[{id:"heute",e:"🏠",l:"Heute"},{id:"zyklus",e:"📅",l:"Zyklus"},{id:"tracker",e:"🍽",l:"Tracker"},{id:"ivf",e:"💉",l:"IVF"},{id:"kiwu",e:"⭐",l:"KiWu"}];
   let content="";
   if(state.tab==="heute")content=renderHeute();
+  else if(state.tab==="zyklus")content=renderZyklus();
   else if(state.tab==="tracker")content=renderTracker();
-  else if(state.tab==="plan")content=renderPlan();
   else if(state.tab==="ivf")content=renderIVF();
   else if(state.tab==="kiwu")content=renderKiWu();
 
