@@ -231,7 +231,7 @@ let state={
   tab:"heute",cycleDay1:null,superChecks:{},madyLog:{},
   stim:{active:false,startDate:null,etDate:null,afterTransfer:false},
   lastSaved:null,bleedingDays:{},calMonth:null,
-  sportLog:{},sportAddMode:false,sportSelType:null,sportSelDuration:30,sportSelIntensity:"mittel",sportSelDate:null,weekAnalysis:null,weekAnalysisLoading:false,chatMessages:[],chatInput:"",chatLoading:false,
+  sportLog:{},sportAddMode:false,sportSelType:null,sportSelDuration:30,sportSelIntensity:"mittel",sportSelDate:null,weekAnalysis:null,weekAnalysisLoading:false,chatMessages:[],chatInput:"",chatLoading:false,superfoodDate:null,
   ernaehrungPhase:null,
 };
 
@@ -260,6 +260,9 @@ function sportRows(sp,stim){
   return[["🧘 Mady Yoga",sp.y||0],["🚶 Nordic Walking",sp.nw||0],["🤸 Pilates",sp.pi||0],["💪 TRX",sp.trx||0],["☯️ BodyBalance",sp.bb||0],["🏋️ Tone/Core",sp.to||0],["🏃 Joggen",sp.jog||0]].map(([n,v])=>`<div class="sprow"><span style="font-size:13px">${n}</span>${stag(v)}</div>`).join("");
 }
 
+
+function getSFDateKey(){return state.superfoodDate||todayKey()}
+function setSFDate(v){state.superfoodDate=v||null;render()}
 function getTodaySportLogs(){return state.sportLog[todayKey()]||[]}
 function sportTypeInfo(id){return SPORT_TYPES.find(s=>s.id===id)||{icon:"⭐",label:"Sport"}}
 function intensityLabel(i){return i==="leicht"?"💚 Leicht":i==="intensiv"?"🔴 Intensiv":"🟡 Mittel"}
@@ -400,16 +403,28 @@ function renderWeekAnalysis(){
 
 function renderHeute(){
   const day=cycleDay(),phase=day?getPhase(day):null,sp=day?getSport(day):null;
-  const key=todayKey(),sc=state.superChecks[key]||{},mady=state.madyLog[key]||false;
+  const sfKey=getSFDateKey();
+  const sc=state.superChecks[sfKey]||{};
   const stim=isStimActive(),sd=stimDay();
   const done=Object.values(sc).filter(Boolean).length;
+  const sfDate=state.superfoodDate||todayKey();
+  const sfIsToday=sfKey===todayKey();
+  const sfLabel=sfIsToday?"Heute":new Date(sfDate+"T12:00").toLocaleDateString("de-DE",{weekday:"short",day:"numeric",month:"short"});
   return`
     ${phase&&!stim?`<div class="card" style="border-left:4px solid ${phase.color}"><div class="ct">${phase.emoji} ${phase.name} · ${phase.days}</div><div style="font-size:13px;color:var(--text-soft);margin-bottom:4px">${phase.desc}</div><div style="font-size:12px;color:#B8927C;font-style:italic">💡 ${phase.tip}</div></div>`:""}
     ${stim?`<div class="card" style="background:#FFF5F5;border-left:4px solid var(--stim)"><div class="ct stim">💉 Stimulationsphase – Tag ${sd}</div>${state.stim.afterTransfer?`<div style="background:#FFEBEE;border-radius:10px;padding:8px;font-size:13px;color:var(--stim);font-weight:bold;margin-bottom:6px">🌸 Nach dem Transfer – Ruhe!</div>`:""}<div style="font-size:13px;color:#C62828">Nur Yoga + sanftes Spazieren erlaubt</div></div>`:""}
-    <div class="card"><div class="ct">🧘 Mady Morrison – Heute</div><div style="display:flex;align-items:center;justify-content:space-between"><div><div style="font-size:15px;font-weight:bold;color:#375623">Video ${day||1}</div><div style="font-size:11px;color:var(--text-soft)">Yogaplan</div></div><button class="btn ${mady?"ok":"pri"} sm" onclick="toggleMady()">${mady?"✅ Gemacht!":"Markieren"}</button></div></div>
     ${sp?`<div class="card"><div class="ct">${stim?"💉":"🏃"} Sport-Empfehlung heute</div>${sportRows(sp,stim)}${stim?`<div style="margin-top:8px;font-size:12px;color:var(--stim);font-style:italic">⚠️ Keine intensiven Sportarten!</div>`:sp?.note?`<div style="margin-top:6px;font-size:12px;color:#B8927C;font-style:italic">💡 ${sp.note}</div>`:""}</div>`:""}
     ${renderSportTracking()}
-    <div class="card"><div class="ct">⭐ KiWu-Superfoods (${done}/${SUPERFOODS.length})</div>
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+        <div class="ct" style="margin-bottom:0">⭐ KiWu-Superfoods (${done}/${SUPERFOODS.length})</div>
+        ${done===SUPERFOODS.filter(s=>!(stim&&s.stimForbid)).length?`<div style="background:#E8F5E9;border-radius:10px;padding:4px 10px;font-size:12px;font-weight:bold;color:#2E7D32">✅ Komplett!</div>`:""}
+      </div>
+      <div style="margin-bottom:10px">
+        <div style="font-size:11px;color:var(--text-soft);margin-bottom:4px;font-weight:bold">📅 Datum</div>
+        <input type="date" class="inp" value="${sfDate}" max="${todayKey()}" onchange="setSFDate(this.value)" style="font-size:13px">
+        ${!sfIsToday?`<div style="font-size:11px;color:var(--orange);margin-top:4px">📅 Rückwirkend: ${sfLabel}</div>`:""}
+      </div>
       ${SUPERFOODS.map(sf=>{const d=sc[sf.id],fb=stim&&sf.stimForbid;return`<div class="chkrow ${fb?"forbidden":d?"done":"todo"}" onclick="${fb?"":"toggleSuper('"+sf.id+"')"}"><div class="cc ${fb?"warn":d?"done":"todo"}">${fb?"🚫":d?"✓":""}</div><div style="flex:1"><div style="font-size:13px;font-weight:bold">${sf.name}</div><div style="font-size:11px;color:var(--text-soft)">${sf.desc}</div>${fb?`<div style="font-size:10px;color:var(--stim);font-weight:bold">⛔ Verboten in Stimulationsphase!</div>`:sf.warn?`<div style="font-size:10px;color:var(--orange);font-weight:bold">${sf.warn}</div>`:""}</div></div>`}).join("")}
     </div>
     <div style="text-align:center;padding:12px;font-size:12px;color:var(--rose);cursor:pointer" onclick="setTab('ernaehrung')">🥗 Zyklusbasierte Ernährungsempfehlungen →</div>`;
@@ -566,7 +581,7 @@ function calNav(dir){let{year,month}=state.calMonth;month+=dir;if(month<0){month
 async function setNewDay1(){const v=document.getElementById("new-day1")?.value;if(!v)return;state.cycleDay1=new Date(v);await saveKey('cd1',state.cycleDay1.toISOString());render()}
 function setTab(t){state.tab=t;state.sportAddMode=false;render();window.scrollTo(0,0)}
 function setErnaehrungPhase(i){state.ernaehrungPhase=i;render()}
-async function toggleSuper(id){const k=todayKey();if(!state.superChecks[k])state.superChecks[k]={};state.superChecks[k][id]=!state.superChecks[k][id];render();await saveKey('sc',state.superChecks)}
+async function toggleSuper(id){const k=getSFDateKey();if(!state.superChecks[k])state.superChecks[k]={};state.superChecks[k][id]=!state.superChecks[k][id];render();await saveKey('sc',state.superChecks)}
 async function toggleMady(){const k=todayKey();state.madyLog[k]=!state.madyLog[k];render();await saveKey('ml',state.madyLog)}
 async function toggleStim(){state.stim.active=!state.stim.active;if(state.stim.active&&!state.stim.startDate)state.stim.startDate=today().toISOString();if(!state.stim.active)state.stim.afterTransfer=false;render();await saveKey('stim',state.stim)}
 async function setStimDate(t,v){if(t==='start')state.stim.startDate=v?new Date(v).toISOString():null;else state.stim.etDate=v?new Date(v).toISOString():null;await saveKey('stim',state.stim)}
