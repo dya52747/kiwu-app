@@ -219,7 +219,7 @@ let state={
   tab:"heute",cycleDay1:null,superChecks:{},madyLog:{},
   stim:{active:false,startDate:null,etDate:null,afterTransfer:false},
   lastSaved:null,bleedingDays:{},calMonth:null,
-  sportLog:{},sportAddMode:false,sportSelType:null,sportSelDuration:30,sportSelIntensity:"mittel",
+  sportLog:{},sportAddMode:false,sportSelType:null,sportSelDuration:30,sportSelIntensity:"mittel",sportSelDate:null,weekAnalysis:null,weekAnalysisLoading:false,
   ernaehrungPhase:null,
 };
 
@@ -256,16 +256,19 @@ async function logSport(){
   const t=state.sportSelType;if(!t){alert("Bitte Sport auswählen!");return}
   const note=document.getElementById("sport-note")?.value||"";
   const info=sportTypeInfo(t);
-  const entry={id:t,icon:info.icon,label:info.label,duration:state.sportSelDuration,intensity:state.sportSelIntensity,note:note.trim(),time:nowTime(),cycleDay:cycleDay()||0};
-  const key=todayKey();if(!state.sportLog[key])state.sportLog[key]=[];
+  const entry={id:t,icon:info.icon,label:info.label,duration:state.sportSelDuration,intensity:state.sportSelIntensity,note:note.trim(),time:nowTime(),cycleDay:getSelCycleDay()};
+  const key=getSelDateKey();if(!state.sportLog[key])state.sportLog[key]=[];
   state.sportLog[key].push(entry);state.sportAddMode=false;state.sportSelType=null;
   await saveKey('sl',state.sportLog);render();
 }
-async function delSportLog(i){const key=todayKey();state.sportLog[key]=(state.sportLog[key]||[]).filter((_,j)=>j!==i);await saveKey('sl',state.sportLog);render()}
+function getSelDateKey(){return state.sportSelDate||todayKey()}
+function getSelCycleDay(){if(!state.cycleDay1||!state.sportSelDate)return cycleDay()||0;const d=new Date(state.sportSelDate);return Math.max(1,Math.floor((d-state.cycleDay1)/86400000)+1)}
+async function delSportLog(i){const key=getSelDateKey();state.sportLog[key]=(state.sportLog[key]||[]).filter((_,j)=>j!==i);await saveKey('sl',state.sportLog);render()}
 function setSportType(id){state.sportSelType=id;render()}
 function setSportDuration(d){state.sportSelDuration=d;render()}
 function setSportIntensity(v){state.sportSelIntensity=v;render()}
-function toggleSportAdd(){state.sportAddMode=!state.sportAddMode;if(!state.sportAddMode)state.sportSelType=null;render()}
+function toggleSportAdd(){state.sportAddMode=!state.sportAddMode;if(!state.sportAddMode){state.sportSelType=null;state.sportSelDate=null;}render()}
+function setSportDate(v){state.sportSelDate=v||null;render()}
 
 function getWeekStats(){
   const days=[];
@@ -279,13 +282,22 @@ function getWeekStats(){
 }
 
 function renderSportTracking(){
-  const logs=getTodaySportLogs();
-  const todayMins=logs.reduce((s,l)=>s+(l.duration||0),0);
+  const selKey=getSelDateKey();
+  const selDate=state.sportSelDate||todayKey();
+  const isToday2=selKey===todayKey();
+  const logs=state.sportLog[selKey]||[];
+  const selMins=logs.reduce((s,l)=>s+(l.duration||0),0);
   const ws=getWeekStats();const mx=Math.max(60,...ws.map(d=>d.mins));
+  const selDateLabel=isToday2?"Heute":new Date(selDate+"T12:00").toLocaleDateString("de-DE",{weekday:"short",day:"numeric",month:"short"});
   return`<div class="card">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
       <div class="ct" style="margin-bottom:0">🏃 Sport tracken</div>
-      ${todayMins>0?`<div style="background:#E8F5E9;border-radius:10px;padding:4px 10px;font-size:12px;font-weight:bold;color:#2E7D32">✅ ${todayMins} Min</div>`:""}
+      ${selMins>0?`<div style="background:#E8F5E9;border-radius:10px;padding:4px 10px;font-size:12px;font-weight:bold;color:#2E7D32">✅ ${selMins} Min</div>`:""}
+    </div>
+    <div style="margin-bottom:10px">
+      <div style="font-size:11px;color:var(--text-soft);margin-bottom:4px;font-weight:bold">📅 Datum</div>
+      <input type="date" class="inp" value="${selDate}" max="${todayKey()}" onchange="setSportDate(this.value)" style="font-size:13px">
+      ${!isToday2?`<div style="font-size:11px;color:var(--orange);margin-top:4px">📅 Rückwirkend: ${selDateLabel}</div>`:""}
     </div>
     ${logs.map((l,i)=>`<div class="sport-log-entry">
       <div style="display:flex;align-items:center;gap:8px">
@@ -294,9 +306,10 @@ function renderSportTracking(){
       </div>
       <button class="sport-log-del" onclick="delSportLog(${i})">×</button>
     </div>`).join("")}
-    ${!state.sportAddMode?`<button class="btn pri full" onclick="toggleSportAdd()">+ Sport eintragen</button>`:`
+    ${!state.sportAddMode?`<button class="btn pri full" onclick="toggleSportAdd()">+ Sport eintragen für ${selDateLabel}</button>`:`
     <div style="background:var(--rose-bg);border-radius:14px;padding:14px">
-      <div style="font-size:13px;font-weight:bold;color:var(--rose);margin-bottom:10px">Welchen Sport?</div>
+      <div style="font-size:13px;font-weight:bold;color:var(--rose);margin-bottom:4px">Welchen Sport?</div>
+      ${!isToday2?`<div style="font-size:11px;color:var(--orange);margin-bottom:10px">📅 Wird für ${selDateLabel} eingetragen</div>`:`<div style="margin-bottom:10px"></div>`}
       <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:12px">
         ${SPORT_TYPES.map(s=>`<button class="sport-btn ${state.sportSelType===s.id?'done':'idle'}" onclick="setSportType('${s.id}')"><div class="sb-icon">${s.icon}</div><div class="sb-label">${s.label}</div></button>`).join("")}
       </div>
@@ -318,6 +331,58 @@ function renderSportTracking(){
         ${ws.map(d=>{const h=Math.max(4,Math.round((d.mins/mx)*40));return`<div class="wb-day"><div style="font-size:9px;color:${d.mins>0?"var(--rose)":"transparent"};font-weight:bold">${d.mins>0?d.mins+"'":"-"}</div><div class="wb-bar" style="height:${h}px;background:${d.isToday?"var(--rose)":"var(--rose-light)"}"></div><div class="wb-label" style="font-weight:${d.isToday?"bold":"normal"}">${d.label}</div></div>`;}).join("")}
       </div>
     </div>
+  </div>`;
+}
+
+
+async function getWeekAnalysis(){
+  state.weekAnalysisLoading=true;state.weekAnalysis=null;render();
+  const day=cycleDay();
+  const phaseIdx=day?getPhaseIdx(day):0;
+  const phaseName=PHASES[phaseIdx].name;
+  const ws=getWeekStats();
+  const totalMins=ws.reduce((s,d)=>s+d.mins,0);
+  const activeDays=ws.filter(d=>d.mins>0).length;
+  // Collect all entries for last 7 days
+  const entries=[];
+  for(let i=6;i>=0;i--){
+    const d=new Date(today());d.setDate(d.getDate()-i);
+    const k=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    const logs=state.sportLog[k]||[];
+    if(logs.length>0){
+      const label=["So","Mo","Di","Mi","Do","Fr","Sa"][d.getDay()];
+      logs.forEach(l=>entries.push(`${label}: ${l.label} ${l.duration}Min (${l.intensity})`));
+    }
+  }
+  const sportList=entries.length>0?entries.join(", "):"Kein Sport diese Woche";
+  const prompt=`Du bist KiWu-Trainingsberaterin für Sandra, 42, Essentielle Thrombozythämie (JAK2), Vegetarierin, IVF.
+Aktuelle Zyklusphase: ${phaseName} (Zyklustag ${day||"??"})
+Sport letzte 7 Tage (${activeDays} aktive Tage, ${totalMins} Minuten gesamt):
+${sportList}
+Bewerte die Sportwoche kurz und gib 2-3 konkrete Empfehlungen für die nächste Woche passend zur Zyklusphase.
+Antworte NUR als JSON (keine Backticks):
+{"bewertung":"super|gut|ok|wenig","lob":"ein motivierender Satz","analyse":"2-3 Sätze zur Woche","naechste_woche":["Tipp 1","Tipp 2","Tipp 3"],"phase_tipp":"1 Satz Sport-Tipp für aktuelle Phase"}`;
+  try{
+    const resp=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:600,messages:[{role:"user",content:prompt}]})});
+    const data=await resp.json();
+    const txt=data.content?.find(c=>c.type==="text")?.text||"{}";
+    state.weekAnalysis=JSON.parse(txt.replace(/```json|```/g,"").trim());
+  }catch{state.weekAnalysis={error:"Analyse nicht verfügbar – erneut versuchen."}}
+  state.weekAnalysisLoading=false;render();
+}
+
+function renderWeekAnalysis(){
+  const wa=state.weekAnalysis;
+  if(!wa)return"";
+  if(wa.error)return`<div style="background:#FFF3E0;border-left:4px solid #FF8F00;border-radius:0 10px 10px 0;padding:8px 12px;font-size:12px;color:#5D4037">${wa.error}</div>`;
+  const emoji={"super":"🌟","gut":"✅","ok":"💛","wenig":"⚠️"}[wa.bewertung]||"💡";
+  const bg={"super":"#F0FFF4","gut":"#F0FFF4","ok":"#FFF8E1","wenig":"#FFF5F5"}[wa.bewertung]||"#FDF0F5";
+  const border={"super":"#A5D6A7","gut":"#A5D6A7","ok":"#FFD54F","wenig":"#FFCDD2"}[wa.bewertung]||"var(--rose-light)";
+  return`<div style="background:${bg};border:1.5px solid ${border};border-radius:14px;padding:14px;margin-top:10px">
+    <div style="font-size:15px;font-weight:bold;color:var(--rose);margin-bottom:8px">${emoji} ${wa.lob||""}</div>
+    <div style="font-size:12px;color:#4A4A4A;line-height:1.7;margin-bottom:10px">${wa.analyse||""}</div>
+    ${wa.naechste_woche?.length?`<div style="font-size:11px;font-weight:bold;color:var(--text-soft);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px">Nächste Woche</div>${wa.naechste_woche.map(t=>`<div style="padding:4px 0;font-size:12px;color:#4A4A4A">💪 ${t}</div>`).join("")}`:""}
+    ${wa.phase_tipp?`<div style="background:var(--rose-bg);border-radius:10px;padding:8px;margin-top:8px;font-size:12px;color:var(--rose)">🌸 ${wa.phase_tipp}</div>`:""}
   </div>`;
 }
 
@@ -425,6 +490,13 @@ function renderZyklus(){
       <div class="lbl">1. Zyklustag</div>
       <input type="date" id="new-day1" class="inp" style="margin-bottom:10px" value="${state.cycleDay1?state.cycleDay1.toISOString().split('T')[0]:''}" max="${today().toISOString().split('T')[0]}">
       <button class="btn pri full" onclick="setNewDay1()">Zyklus aktualisieren 🌸</button>
+    </div>
+    <div class="card">
+      <div class="ct">🤖 KI-Wochenanalyse Sport</div>
+      <div style="font-size:12px;color:var(--text-soft);margin-bottom:10px">Claude analysiert deine Sportwoche passend zur aktuellen Zyklusphase.</div>
+      ${state.weekAnalysisLoading?`<div style="display:flex;justify-content:center;padding:16px;align-items:center;gap:10px;font-size:13px;color:var(--text-soft)"><div class="spin"></div>Analysiere…</div>`:""}
+      ${!state.weekAnalysisLoading?renderWeekAnalysis():""}
+      ${!state.weekAnalysisLoading?`<button class="btn pri full" onclick="getWeekAnalysis()">${state.weekAnalysis?"🔄 Neu analysieren":"🌸 Sportwoche analysieren"}</button>`:""}
     </div>
     ${entries.length?`<div class="card"><div class="ct">🏃 Sport-Verlauf (14 Tage)</div>${entries.map(e=>`<div style="padding:8px 0;border-bottom:1px solid #F5EEF8"><div style="font-size:11px;color:var(--text-soft);margin-bottom:4px">${e.date.toLocaleDateString("de-DE",{weekday:"short",day:"numeric",month:"short"})}</div>${e.logs.map(l=>`<div style="display:flex;align-items:center;gap:6px;margin-bottom:3px"><span style="font-size:16px">${l.icon}</span><span style="font-size:12px;font-weight:bold">${l.label}</span><span style="font-size:11px;color:var(--text-soft)">${l.duration} Min · ${intensityLabel(l.intensity)}${l.note?` · ${l.note}`:""}</span></div>`).join("")}</div>`).join("")}</div>`:`<div class="card"><div class="ct">🏃 Sport-Verlauf</div><div style="text-align:center;padding:16px;font-size:13px;color:var(--text-soft)">Noch kein Sport geloggt. Los geht's! 🌸</div></div>`}`;
 }
