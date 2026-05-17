@@ -221,13 +221,13 @@ let state={
   tab:"heute",cycleDay1:null,superChecks:{},madyLog:{},
   stim:{active:false,startDate:null,etDate:null,afterTransfer:false},
   lastSaved:null,bleedingDays:{},calMonth:null,
-  sportLog:{},sportAddMode:false,sportSelType:null,sportSelDuration:30,sportSelIntensity:"mittel",sportSelDate:null,superfoodDate:null,
+  sportLog:{},sportAddMode:false,sportSelType:null,sportSelDuration:30,sportSelIntensity:"mittel",sportSelDate:null,superfoodDate:null,ovulationDays:{},ovulationInput:"",lutealLength:14,
   ernaehrungPhase:null,
 };
 
 async function loadState(){
   try{
-    const [cd1,sc,ml,stim,ls,bd,sl]=await Promise.all([storeGet('cd1'),storeGet('sc'),storeGet('ml'),storeGet('stim'),storeGet('ls'),storeGet('bd'),storeGet('sl')]);
+    const [cd1,sc,ml,stim,ls,bd,sl,ov,ll]=await Promise.all([storeGet('cd1'),storeGet('sc'),storeGet('ml'),storeGet('stim'),storeGet('ls'),storeGet('bd'),storeGet('sl'),storeGet('ov'),storeGet('ll')]);
     state.cycleDay1=cd1?new Date(cd1):null;state.superChecks=sc||{};state.madyLog=ml||{};
     state.bleedingDays=bd||{};state.sportLog=sl||{};state.apiKey=ak||"";if(stim)state.stim={...state.stim,...stim};
     state.lastSaved=ls||null;const n=today();state.calMonth={year:n.getFullYear(),month:n.getMonth()};
@@ -341,6 +341,116 @@ function renderSportTracking(){
 
 
 
+
+// ─── OVULATION HELPERS ─────────────────────
+function getLatestOvulation(){
+  const keys=Object.keys(state.ovulationDays).filter(k=>state.ovulationDays[k]).sort();
+  return keys.length>0?keys[keys.length-1]:null;
+}
+function getPredictedPeriod(){
+  const ov=getLatestOvulation();
+  if(!ov)return null;
+  const d=new Date(ov+"T12:00");
+  d.setDate(d.getDate()+state.lutealLength);
+  return d;
+}
+function getPredictedNextOvulation(){
+  const pp=getPredictedPeriod();
+  if(!pp)return null;
+  const d=new Date(pp);
+  // Estimate ovulation ~14 days after predicted period
+  if(state.cycleDay1){
+    const cycleLen=Math.round((new Date(getLatestOvulation()+"T12:00")-state.cycleDay1)/86400000)+1;
+    d.setDate(d.getDate()+cycleLen-state.lutealLength);
+  } else {
+    d.setDate(d.getDate()+14);
+  }
+  return d;
+}
+function fmtDate(d){return d.toLocaleDateString("de-DE",{day:"numeric",month:"short"})}
+
+async function toggleOvulation(dateStr){
+  state.ovulationDays[dateStr]=!state.ovulationDays[dateStr];
+  if(!state.ovulationDays[dateStr])delete state.ovulationDays[dateStr];
+  await saveKey('ov',state.ovulationDays);
+  render();
+}
+async function setLutealLength(v){
+  state.lutealLength=parseInt(v)||14;
+  await saveKey('ll',state.lutealLength);
+  render();
+}
+
+function renderOvulationTracker(){
+  const today7=[];
+  for(let i=6;i>=0;i--){
+    const d=new Date(today());d.setDate(d.getDate()-i);
+    const k=d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
+    today7.push({k,label:["So","Mo","Di","Mi","Do","Fr","Sa"][d.getDay()],date:d,isToday:i===0});
+  }
+  const latestOv=getLatestOvulation();
+  const predPeriod=getPredictedPeriod();
+  const predNextOv=getPredictedNextOvulation();
+  const ovInput=state.ovulationInput||todayKey();
+
+  return`<div class="card">
+    <div class="ct">🥚 Ovulationstest-Tracker</div>
+
+    ${latestOv||predPeriod?`<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px">
+      ${latestOv?`<div style="background:#F0FFF4;border-radius:12px;padding:10px;text-align:center">
+        <div style="font-size:10px;color:var(--text-soft)">Letzter Eisprung</div>
+        <div style="font-size:15px;font-weight:bold;color:#2E7D32">🟢 ${fmtDate(new Date(latestOv+"T12:00"))}</div>
+      </div>`:""}
+      ${predPeriod?`<div style="background:#FFF5F5;border-radius:12px;padding:10px;text-align:center">
+        <div style="font-size:10px;color:var(--text-soft)">Periode erwartet</div>
+        <div style="font-size:15px;font-weight:bold;color:#E57373">🔴 ${fmtDate(predPeriod)}</div>
+      </div>`:""}
+      ${predNextOv?`<div style="background:#F0F7FF;border-radius:12px;padding:10px;text-align:center;grid-column:1/-1">
+        <div style="font-size:10px;color:var(--text-soft)">Nächster Eisprung (Prognose)</div>
+        <div style="font-size:15px;font-weight:bold;color:#5C9BD6">🔵 ${fmtDate(predNextOv)}</div>
+      </div>`:""}
+    </div>`:""}
+
+    <div style="font-size:11px;font-weight:bold;color:var(--text-soft);margin-bottom:8px">LETZTE 7 TAGE – POSITIV MARKIEREN</div>
+    <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:12px">
+      ${today7.map(d=>{
+        const isOv=state.ovulationDays[d.k];
+        return`<div onclick="toggleOvulation('${d.k}')" style="cursor:pointer;border-radius:10px;padding:8px 4px;text-align:center;background:${isOv?"#C8E6C9":d.isToday?"var(--rose-bg)":"#F5EEF8"};border:${isOv?"2px solid #66BB6A":d.isToday?"2px solid var(--rose)":"1px solid #F0E8ED"}">
+          <div style="font-size:9px;color:var(--text-soft)">${d.label}</div>
+          <div style="font-size:14px;margin:2px 0">${isOv?"🟢":"⚪"}</div>
+          <div style="font-size:9px;font-weight:${d.isToday?"bold":"normal"};color:${isOv?"#2E7D32":d.isToday?"var(--rose)":"var(--text-soft)"}">${d.isToday?"Heute":String(d.date.getDate())}</div>
+        </div>`;
+      }).join("")}
+    </div>
+
+    <div style="font-size:11px;font-weight:bold;color:var(--text-soft);margin-bottom:6px">📅 RÜCKWIRKEND EINTRAGEN</div>
+    <div style="display:flex;gap:8px;margin-bottom:12px">
+      <input type="date" class="inp" style="flex:1;font-size:13px" value="${ovInput}" max="${todayKey()}" onchange="state.ovulationInput=this.value">
+      <button class="btn pri sm" onclick="toggleOvulation(state.ovulationInput||todayKey());render()">
+        ${state.ovulationDays[ovInput]?"❌ Entfernen":"✅ Positiv"}
+      </button>
+    </div>
+
+    <div style="border-top:1px solid #F5EEF8;padding-top:10px">
+      <div style="font-size:11px;font-weight:bold;color:var(--text-soft);margin-bottom:6px">⚙️ Lutealphase</div>
+      <div style="display:flex;align-items:center;gap:10px">
+        <div style="font-size:12px;color:var(--text-soft)">Länge:</div>
+        <div style="display:flex;gap:4px">${[12,13,14,15,16].map(n=>`<button onclick="setLutealLength(${n})" style="padding:4px 10px;border-radius:16px;border:none;font-size:12px;font-weight:bold;cursor:pointer;background:${state.lutealLength===n?"var(--rose)":"#F5EEF8"};color:${state.lutealLength===n?"#fff":"var(--rose)"};font-family:inherit">${n}</button>`).join("")}</div>
+        <div style="font-size:11px;color:var(--text-soft)">Tage</div>
+      </div>
+    </div>
+
+    ${Object.keys(state.ovulationDays).filter(k=>state.ovulationDays[k]).sort().reverse().slice(0,5).length>0?`
+    <div style="border-top:1px solid #F5EEF8;padding-top:10px;margin-top:10px">
+      <div style="font-size:11px;font-weight:bold;color:var(--text-soft);margin-bottom:6px">ALLE POSITIVEN TESTS</div>
+      ${Object.keys(state.ovulationDays).filter(k=>state.ovulationDays[k]).sort().reverse().slice(0,10).map(k=>`
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid #F5EEF8;font-size:12px">
+          <span>🟢 ${fmtDate(new Date(k+"T12:00"))}</span>
+          <button onclick="toggleOvulation('${k}')" style="background:none;border:none;color:#D9534F;cursor:pointer;font-size:16px">×</button>
+        </div>`).join("")}
+    </div>`:""}
+  </div>`;
+}
 function renderHeute(){
   const day=cycleDay(),phase=day?getPhase(day):null,sp=day?getSport(day):null;
   const sfKey=getSFDateKey();
@@ -450,6 +560,12 @@ function renderZyklus(){
   function cdBg(d){if(!state.cycleDay1)return"#F5EEF8";const diff=Math.floor((new Date(year,month,d)-state.cycleDay1)/86400000);const cd=diff>=0?diff+1:null;if(!cd||cd<1)return"#F5EEF8";if(cd<=5)return"#FFCDD2";if(cd<=13)return"#BBDEFB";if(cd<=16)return"#C8E6C9";return"#E1BEE7"}
   function dKey(d){return year+"-"+String(month+1).padStart(2,"0")+"-"+String(d).padStart(2,"0")}
   function hasSport(d){return(state.sportLog[dKey(d)]||[]).length>0}
+  function hasOvulation(d){return!!state.ovulationDays[dKey(d)]}
+  // Check if predicted period or next ovulation falls on this day
+  const predPer=getPredictedPeriod();
+  const predNxOv=getPredictedNextOvulation();
+  function isPredPeriod(d){if(!predPer)return false;const pd=new Date(year,month,d);return pd.toDateString()===predPer.toDateString()}
+  function isPredOv(d){if(!predNxOv)return false;const pd=new Date(year,month,d);return pd.toDateString()===predNxOv.toDateString()}
   let cells=[];for(let i=0;i<startDow;i++)cells.push(null);for(let d=1;d<=daysInMonth;d++)cells.push(d);
   const entries=[];
   for(let i=0;i<14;i++){const d=new Date(today());d.setDate(d.getDate()-i);const k=d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");const logs=state.sportLog[k]||[];if(logs.length>0)entries.push({date:d,logs})}
@@ -489,6 +605,9 @@ function renderZyklus(){
       <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px">
         ${[["#FFCDD2","Mens."],["#BBDEFB","Aufbau"],["#C8E6C9","Eisprung"],["#E1BEE7","Luteal"]].map(([c,l])=>`<div style="display:flex;align-items:center;gap:3px"><div style="width:10px;height:10px;border-radius:3px;background:${c}"></div><span style="font-size:10px;color:var(--text-soft)">${l}</span></div>`).join("")}
         <div style="display:flex;align-items:center;gap:3px"><span>🏃</span><span style="font-size:10px;color:var(--text-soft)">Sport</span></div>
+        <div style="display:flex;align-items:center;gap:3px"><span>🟢</span><span style="font-size:10px;color:var(--text-soft)">Eisprung bestätigt</span></div>
+        <div style="display:flex;align-items:center;gap:3px"><span>🔴</span><span style="font-size:10px;color:var(--text-soft)">Periode erwartet</span></div>
+        <div style="display:flex;align-items:center;gap:3px"><span>🔵</span><span style="font-size:10px;color:var(--text-soft)">Nächster Eisprung</span></div>
       </div>
     </div>
     <div class="card" style="background:linear-gradient(135deg,#F0FFF4,#E8F5E9)">
@@ -534,6 +653,7 @@ function renderZyklus(){
       <input type="date" id="new-day1" class="inp" style="margin-bottom:10px" value="${state.cycleDay1?state.cycleDay1.toISOString().split('T')[0]:''}" max="${today().toISOString().split('T')[0]}">
       <button class="btn pri full" onclick="setNewDay1()">Zyklus aktualisieren 🌸</button>
     </div>
+    ${renderOvulationTracker()}
     ${entries.length?`<div class="card"><div class="ct">🏃 Sport-Verlauf (14 Tage)</div>${entries.map(e=>`<div style="padding:8px 0;border-bottom:1px solid #F5EEF8"><div style="font-size:11px;color:var(--text-soft);margin-bottom:4px">${e.date.toLocaleDateString("de-DE",{weekday:"short",day:"numeric",month:"short"})}</div>${e.logs.map(l=>`<div style="display:flex;align-items:center;gap:6px;margin-bottom:3px"><span style="font-size:16px">${l.icon}</span><span style="font-size:12px;font-weight:bold">${l.label}</span><span style="font-size:11px;color:var(--text-soft)">${l.duration} Min · ${intensityLabel(l.intensity)}${l.note?` · ${l.note}`:""}</span></div>`).join("")}</div>`).join("")}</div>`:`<div class="card"><div class="ct">🏃 Sport-Verlauf</div><div style="text-align:center;padding:16px;font-size:13px;color:var(--text-soft)">Noch kein Sport geloggt. Los geht's! 🌸</div></div>`}`;
 }
 
@@ -596,7 +716,7 @@ async function setStimDate(t,v){if(t==='start')state.stim.startDate=v?new Date(v
 async function toggleAT(){state.stim.afterTransfer=!state.stim.afterTransfer;render();await saveKey('stim',state.stim)}
 
 function exportData(){
-  const p={version:"7.0",exported:new Date().toISOString(),cycleDay1:state.cycleDay1?.toISOString()||null,superChecks:state.superChecks,madyLog:state.madyLog,stim:state.stim,sportLog:state.sportLog};
+  const p={version:"7.1",exported:new Date().toISOString(),cycleDay1:state.cycleDay1?.toISOString()||null,superChecks:state.superChecks,madyLog:state.madyLog,stim:state.stim,sportLog:state.sportLog,ovulationDays:state.ovulationDays,lutealLength:state.lutealLength};
   const blob=new Blob([JSON.stringify(p,null,2)],{type:"application/json"});
   const url=URL.createObjectURL(blob);const a=document.createElement("a");a.href=url;a.download=`kiwu-backup-${new Date().toISOString().split('T')[0]}.json`;a.click();URL.revokeObjectURL(url);
 }
@@ -608,7 +728,7 @@ async function importData(input){
     state.cycleDay1=data.cycleDay1?new Date(data.cycleDay1):null;
     state.superChecks=data.superChecks||{};state.madyLog=data.madyLog||{};state.sportLog=data.sportLog||{};
     if(data.stim)state.stim={...state.stim,...data.stim};
-    await Promise.all([saveKey('cd1',state.cycleDay1?.toISOString()||null),saveKey('sc',state.superChecks),saveKey('ml',state.madyLog),saveKey('stim',state.stim),saveKey('sl',state.sportLog)]);
+    await Promise.all([saveKey('cd1',state.cycleDay1?.toISOString()||null),saveKey('sc',state.superChecks),saveKey('ml',state.madyLog),saveKey('stim',state.stim),saveKey('sl',state.sportLog),saveKey('ov',state.ovulationDays),saveKey('ll',state.lutealLength)]);
     alert("✅ Import erfolgreich!");render();
   }catch(e){alert("Fehler: "+e.message)}input.value="";
 }
