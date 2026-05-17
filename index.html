@@ -438,6 +438,7 @@ function renderErnaehrung(){
 }
 
 function renderZyklus(){
+  if(!state.calMonth){state.calMonth={year:today().getFullYear(),month:today().getMonth()};}
   const day=cycleDay();
   const {year,month}=state.calMonth;
   const monthNames=["Januar","Februar","März","April","Mai","Juni","Juli","August","September","Oktober","November","Dezember"];
@@ -447,10 +448,31 @@ function renderZyklus(){
   const mSportDays=Object.keys(state.sportLog).filter(k=>{const d=new Date(k);return d.getFullYear()===year&&d.getMonth()===month&&(state.sportLog[k]||[]).length>0}).length;
   const mSportMins=Object.keys(state.sportLog).filter(k=>{const d=new Date(k);return d.getFullYear()===year&&d.getMonth()===month}).reduce((s,k)=>s+(state.sportLog[k]||[]).reduce((a,l)=>a+(l.duration||0),0),0);
   function cdBg(d){if(!state.cycleDay1)return"#F5EEF8";const diff=Math.floor((new Date(year,month,d)-state.cycleDay1)/86400000);const cd=diff>=0?diff+1:null;if(!cd||cd<1)return"#F5EEF8";if(cd<=5)return"#FFCDD2";if(cd<=13)return"#BBDEFB";if(cd<=16)return"#C8E6C9";return"#E1BEE7"}
-  function hasSport(d){const k=`${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;return(state.sportLog[k]||[]).length>0}
+  function dKey(d){return year+"-"+String(month+1).padStart(2,"0")+"-"+String(d).padStart(2,"0")}
+  function hasSport(d){return(state.sportLog[dKey(d)]||[]).length>0}
   let cells=[];for(let i=0;i<startDow;i++)cells.push(null);for(let d=1;d<=daysInMonth;d++)cells.push(d);
   const entries=[];
-  for(let i=0;i<14;i++){const d=new Date(today());d.setDate(d.getDate()-i);const k=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;const logs=state.sportLog[k]||[];if(logs.length>0)entries.push({date:d,logs})}
+  for(let i=0;i<14;i++){const d=new Date(today());d.setDate(d.getDate()-i);const k=d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");const logs=state.sportLog[k]||[];if(logs.length>0)entries.push({date:d,logs})}
+  // Compute superfood days (>=5 done)
+  let sfDays=0;
+  for(let d=1;d<=daysInMonth;d++){const sc=state.superChecks[dKey(d)]||{};if(Object.values(sc).filter(Boolean).length>=5)sfDays++;}
+  // Build calendar cells HTML
+  let calCells="";
+  cells.forEach(function(d){
+    if(!d){calCells+="<div></div>";return;}
+    const k=dKey(d);
+    const sportMins=(state.sportLog[k]||[]).reduce(function(s,l){return s+(l.duration||0)},0);
+    const sc=state.superChecks[k]||{};
+    const sfDone=Object.values(sc).filter(Boolean).length;
+    const sfPct=Math.round(sfDone/SUPERFOODS.length*100);
+    const isTd=isThisMonth&&d===todayD.getDate();
+    const sfColor=sfPct>=100?"#66BB6A":sfPct>0?"#FFB300":"transparent";
+    calCells+="<div style='border-radius:8px;padding:4px 2px;background:"+(isTd?"var(--rose-bg)":"#F9F5F7")+";border:"+(isTd?"1.5px solid var(--rose)":"1px solid #F0E8ED")+";text-align:center'>";
+    calCells+="<div style='font-size:10px;font-weight:"+(isTd?"bold":"normal")+";color:"+(isTd?"var(--rose)":"var(--text)")+"'>"+d+"</div>";
+    calCells+="<div style='font-size:8px;margin-top:1px'>"+(sportMins>0?"🏃":"")+"</div>";
+    calCells+="<div style='background:#F0E8ED;border-radius:3px;height:3px;margin-top:2px'><div style='background:"+sfColor+";height:100%;border-radius:3px;width:"+sfPct+"%'></div></div>";
+    calCells+="</div>";
+  });
   return`
     <div class="card">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
@@ -490,7 +512,7 @@ function renderZyklus(){
           </div>
           <div style="text-align:center;flex:1">
             <div style="font-size:10px;color:var(--text-soft);margin-bottom:2px">Superfoods-Tage</div>
-            <div style="font-size:20px;font-weight:bold;color:var(--rose)">${(()=>{let c=0;for(let d=1;d<=daysInMonth;d++){const k=`${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;const sc=state.superChecks[k]||{};if(Object.values(sc).filter(Boolean).length>=5)c++;}return c;})()}</div>
+            <div style="font-size:20px;font-weight:bold;color:var(--rose)">${sfDays}</div>
           </div>
         </div>
       </div>
@@ -498,27 +520,7 @@ function renderZyklus(){
       <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:3px;margin-bottom:4px">
         ${["Mo","Di","Mi","Do","Fr","Sa","So"].map(d=>`<div style="text-align:center;font-size:8px;color:var(--text-soft);font-weight:bold">${d}</div>`).join("")}
       </div>
-      <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:3px">
-        ${(()=>{
-          let dayCells=[];
-          for(let i=0;i<startDow;i++)dayCells.push(`<div></div>`);
-          for(let d=1;d<=daysInMonth;d++){
-            const k=`${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-            const sportMins=(state.sportLog[k]||[]).reduce((s,l)=>s+(l.duration||0),0);
-            const sc=state.superChecks[k]||{};
-            const sfDone=Object.values(sc).filter(Boolean).length;
-            const sfPct=Math.round(sfDone/SUPERFOODS.length*100);
-            const isTd=isThisMonth&&d===todayD.getDate();
-            const hasSp=sportMins>0;
-            dayCells.push(`<div style="border-radius:8px;padding:4px 2px;background:${isTd?"var(--rose-bg)":"#F9F5F7"};border:${isTd?"1.5px solid var(--rose)":"1px solid #F0E8ED"};text-align:center">
-              <div style="font-size:10px;font-weight:${isTd?"bold":"normal"};color:${isTd?"var(--rose)":"var(--text)"}">${d}</div>
-              <div style="font-size:8px;margin-top:1px">${hasSp?"🏃":""}</div>
-              <div style="background:#F0E8ED;border-radius:3px;height:3px;margin-top:2px"><div style="background:${sfPct>=100?"#66BB6A":sfPct>0?"#FFB300":"transparent"};height:100%;border-radius:3px;width:${sfPct}%"></div></div>
-            </div>`);
-          }
-          return dayCells.join("");
-        })()}
-      </div>
+      <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:3px">${calCells}</div>
       <div style="display:flex;gap:12px;margin-top:8px;flex-wrap:wrap">
         <div style="display:flex;align-items:center;gap:4px"><span style="font-size:10px">🏃</span><span style="font-size:10px;color:var(--text-soft)">Sport</span></div>
         <div style="display:flex;align-items:center;gap:4px"><div style="width:20px;height:4px;border-radius:2px;background:#66BB6A"></div><span style="font-size:10px;color:var(--text-soft)">Superfoods komplett</span></div>
