@@ -231,15 +231,15 @@ let state={
   tab:"heute",cycleDay1:null,superChecks:{},madyLog:{},
   stim:{active:false,startDate:null,etDate:null,afterTransfer:false},
   lastSaved:null,bleedingDays:{},calMonth:null,
-  sportLog:{},sportAddMode:false,sportSelType:null,sportSelDuration:30,sportSelIntensity:"mittel",sportSelDate:null,weekAnalysis:null,weekAnalysisLoading:false,chatMessages:[],chatInput:"",chatLoading:false,superfoodDate:null,
+  sportLog:{},sportAddMode:false,sportSelType:null,sportSelDuration:30,sportSelIntensity:"mittel",sportSelDate:null,weekAnalysis:null,weekAnalysisLoading:false,chatMessages:[],chatInput:"",chatLoading:false,superfoodDate:null,apiKey:"",showApiKey:false,
   ernaehrungPhase:null,
 };
 
 async function loadState(){
   try{
-    const [cd1,sc,ml,stim,ls,bd,sl]=await Promise.all([storeGet('cd1'),storeGet('sc'),storeGet('ml'),storeGet('stim'),storeGet('ls'),storeGet('bd'),storeGet('sl')]);
+    const [cd1,sc,ml,stim,ls,bd,sl,ak]=await Promise.all([storeGet('cd1'),storeGet('sc'),storeGet('ml'),storeGet('stim'),storeGet('ls'),storeGet('bd'),storeGet('sl'),storeGet('ak')]);
     state.cycleDay1=cd1?new Date(cd1):null;state.superChecks=sc||{};state.madyLog=ml||{};
-    state.bleedingDays=bd||{};state.sportLog=sl||{};if(stim)state.stim={...state.stim,...stim};
+    state.bleedingDays=bd||{};state.sportLog=sl||{};state.apiKey=ak||"";if(stim)state.stim={...state.stim,...stim};
     state.lastSaved=ls||null;const n=today();state.calMonth={year:n.getFullYear(),month:n.getMonth()};
   }catch(e){}
 }
@@ -350,7 +350,21 @@ function renderSportTracking(){
 }
 
 
+
+async function saveApiKey(){
+  const val=document.getElementById("api-key-input")?.value?.trim();
+  if(!val){alert("Bitte API Key eingeben");return}
+  if(!val.startsWith("sk-ant-")){alert("Ungültiger Key – muss mit sk-ant- beginnen");return}
+  state.apiKey=val;
+  await saveKey('ak',val);
+  state.showApiKey=false;
+  alert("✅ API Key gespeichert! KI-Funktionen sind jetzt aktiv.");
+  render();
+}
+function toggleShowApiKey(){state.showApiKey=!state.showApiKey;render()}
+function deleteApiKey(){if(!confirm("API Key löschen?"))return;state.apiKey="";saveKey('ak',"");render()}
 async function getWeekAnalysis(){
+  if(!state.apiKey){alert("Bitte zuerst API Key im ⭐ KiWu-Tab eintragen!");return}
   state.weekAnalysisLoading=true;state.weekAnalysis=null;render();
   const day=cycleDay();
   const phaseIdx=day?getPhaseIdx(day):0;
@@ -378,7 +392,7 @@ Bewerte die Sportwoche kurz und gib 2-3 konkrete Empfehlungen für die nächste 
 Antworte NUR als JSON (keine Backticks):
 {"bewertung":"super|gut|ok|wenig","lob":"ein motivierender Satz","analyse":"2-3 Sätze zur Woche","naechste_woche":["Tipp 1","Tipp 2","Tipp 3"],"phase_tipp":"1 Satz Sport-Tipp für aktuelle Phase"}`;
   try{
-    const resp=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:600,messages:[{role:"user",content:prompt}]})});
+    const resp=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json"},headers:{"Content-Type":"application/json","x-api-key":state.apiKey,"anthropic-version":"2023-06-01"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:600,messages:[{role:"user",content:prompt}]})});
     const data=await resp.json();
     const txt=data.content?.find(c=>c.type==="text")?.text||"{}";
     state.weekAnalysis=JSON.parse(txt.replace(/```json|```/g,"").trim());
@@ -557,6 +571,31 @@ function renderKiWu(){
       ${syncOk?`<div style="font-size:12px;color:#2E7D32;line-height:1.6">✅ Geräteübergreifend synchronisiert<br>Gespeichert: ${fmtSaved(state.lastSaved)}</div>`:`<div style="font-size:12px;color:#E65100">Auf GitHub Pages: localStorage. Export/Import zum Übertragen nutzen.</div>`}
     </div>
     <div class="card">
+      <div class="ct">🔑 API Key – KI-Funktionen</div>
+      ${state.apiKey?`
+        <div style="background:#E8F5E9;border-radius:10px;padding:10px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center">
+          <div>
+            <div style="font-size:13px;font-weight:bold;color:#2E7D32">✅ API Key aktiv</div>
+            <div style="font-size:11px;color:var(--text-soft)">Chat & KI-Analyse verfügbar</div>
+          </div>
+          <button onclick="deleteApiKey()" style="background:none;border:none;color:#D9534F;cursor:pointer;font-size:12px">🗑 Löschen</button>
+        </div>
+        ${state.showApiKey?`
+          <div class="lbl">Neuen API Key eingeben</div>
+          <input id="api-key-input" class="inp" type="password" placeholder="sk-ant-..." style="margin-bottom:8px">
+          <div style="display:flex;gap:8px">
+            <button class="btn pri full" onclick="saveApiKey()">Speichern ✅</button>
+            <button class="btn gray sm" onclick="toggleShowApiKey()">Abbrechen</button>
+          </div>`:`<button class="btn gray full" onclick="toggleShowApiKey()">Key ändern</button>`}
+      `:`
+        <div style="font-size:12px;color:var(--text-soft);margin-bottom:10px">Für Chat & KI-Wochenanalyse benötigst du einen Anthropic API Key.</div>
+        <div class="lbl">API Key eingeben (sk-ant-...)</div>
+        <input id="api-key-input" class="inp" type="password" placeholder="sk-ant-api03-..." style="margin-bottom:8px">
+        <button class="btn pri full" onclick="saveApiKey()">Speichern & aktivieren ✅</button>
+        <div style="font-size:10px;color:var(--text-soft);margin-top:8px;line-height:1.6">🔒 Der Key wird nur in deinem Browser gespeichert – nirgendwo sonst.</div>
+      `}
+    </div>
+    <div class="card">
       <div class="ct">📤 Export & Import</div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
         <button class="btn pri full" onclick="exportData()">📤 Exportieren</button>
@@ -626,6 +665,7 @@ Antworte auf Deutsch, freundlich, kurz und präzise. Bei medizinischen Fragen im
 }
 
 async function sendChat(){
+  if(!state.apiKey){alert("Bitte zuerst API Key im ⭐ KiWu-Tab eintragen!");return}
   const input=document.getElementById("chat-input");
   const msg=(input?.value||state.chatInput).trim();
   if(!msg||state.chatLoading)return;
@@ -634,7 +674,7 @@ async function sendChat(){
   setTimeout(()=>{const el=document.getElementById("chat-wrap");if(el)el.scrollTop=el.scrollHeight},50);
   try{
     const messages=state.chatMessages.map(m=>({role:m.role,content:m.content}));
-    const resp=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:600,system:buildChatContext(),messages})});
+    const resp=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json"},headers:{"Content-Type":"application/json","x-api-key":state.apiKey,"anthropic-version":"2023-06-01"},headers:{"Content-Type":"application/json","x-api-key":state.apiKey,"anthropic-version":"2023-06-01"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:600,system:buildChatContext(),messages})});
     const data=await resp.json();
     const reply=data.content?.find(c=>c.type==="text")?.text||"Entschuldigung, ich konnte nicht antworten.";
     state.chatMessages.push({role:"assistant",content:reply});
@@ -676,7 +716,7 @@ function quickChat(msg){state.chatInput=msg;state.chatMessages.push({role:"user"
   setTimeout(async()=>{
     try{
       const messages=state.chatMessages.map(m=>({role:m.role,content:m.content}));
-      const resp=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:600,system:buildChatContext(),messages})});
+      const resp=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json"},headers:{"Content-Type":"application/json","x-api-key":state.apiKey,"anthropic-version":"2023-06-01"},headers:{"Content-Type":"application/json","x-api-key":state.apiKey,"anthropic-version":"2023-06-01"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:600,system:buildChatContext(),messages})});
       const data=await resp.json();
       const reply=data.content?.find(c=>c.type==="text")?.text||"Entschuldigung.";
       state.chatMessages.push({role:"assistant",content:reply});
