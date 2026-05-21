@@ -796,7 +796,7 @@ async function importData(input){
 
 
 function render(){
-  const day=cycleDay(),phase=day?getPhase(day):null,stim=isStimActive(),sd=stimDay();
+  const day=cycleDay(),phase=day?(getSmartPhase()||getPhase(day)):null,stim=isStimActive(),sd=stimDay();
   const tabs=[{id:"heute",e:"🏠",l:"Heute"},{id:"zyklus",e:"📅",l:"Zyklus"},{id:"ernaehrung",e:"🥗",l:"Ernährung"},{id:"ivf",e:"💉",l:"IVF"},{id:"kiwu",e:"⭐",l:"KiWu"}];
   let content="";
   if(state.tab==="heute")content=renderHeute();
