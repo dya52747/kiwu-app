@@ -488,7 +488,9 @@ function renderOvulationTracker(){
 function renderHeute(){
   const day=cycleDay();
   const phase=day?(getSmartPhase()||getPhase(day)):null;
-  const sp=day?getSport(day):null;
+  const latestOv=getLatestOvulation();
+  const sportDay=day?((!latestOv&&day>13)?13:day):null;
+  const sp=sportDay?getSport(sportDay):null;
   const sfKey=getSFDateKey();
   const sc=state.superChecks[sfKey]||{};
   const stim=isStimActive(),sd=stimDay();
@@ -594,7 +596,27 @@ function renderZyklus(){
   const todayD=today();const isThisMonth=todayD.getFullYear()===year&&todayD.getMonth()===month;
   const mSportDays=Object.keys(state.sportLog).filter(k=>{const d=new Date(k);return d.getFullYear()===year&&d.getMonth()===month&&(state.sportLog[k]||[]).length>0}).length;
   const mSportMins=Object.keys(state.sportLog).filter(k=>{const d=new Date(k);return d.getFullYear()===year&&d.getMonth()===month}).reduce((s,k)=>s+(state.sportLog[k]||[]).reduce((a,l)=>a+(l.duration||0),0),0);
-  function cdBg(d){if(!state.cycleDay1)return"#F5EEF8";const diff=Math.floor((new Date(year,month,d)-state.cycleDay1)/86400000);const cd=diff>=0?diff+1:null;if(!cd||cd<1)return"#F5EEF8";if(cd<=5)return"#FFCDD2";if(cd<=13)return"#BBDEFB";if(cd<=16)return"#C8E6C9";return"#E1BEE7"}
+  function cdBg(d){
+    if(!state.cycleDay1)return"#F5EEF8";
+    const diff=Math.floor((new Date(year,month,d)-state.cycleDay1)/86400000);
+    const cd=diff>=0?diff+1:null;
+    if(!cd||cd<1)return"#F5EEF8";
+    if(cd<=5)return"#FFCDD2"; // Menstruation
+    // Check if ovulation confirmed on or before this date
+    const cellDate=new Date(year,month,d);
+    cellDate.setHours(12,0,0,0);
+    const ovKeys=Object.keys(state.ovulationDays).filter(k=>state.ovulationDays[k]).sort();
+    const confirmedOvBefore=ovKeys.some(k=>{const od=new Date(k+"T12:00");return od<=cellDate;});
+    if(confirmedOvBefore){
+      // Find the ovulation date closest before this cell
+      const ovDate=new Date(ovKeys.filter(k=>new Date(k+"T12:00")<=cellDate).pop()+"T12:00");
+      const daysSinceOv=Math.floor((cellDate-ovDate)/86400000);
+      if(daysSinceOv===0)return"#C8E6C9"; // Ovulation day
+      return"#E1BEE7"; // Luteal
+    }
+    // No confirmed ovulation yet for this date - stay Aufbau after day 5
+    return"#BBDEFB";
+  }
   function dKey(d){return year+"-"+String(month+1).padStart(2,"0")+"-"+String(d).padStart(2,"0")}
   function hasSport(d){return(state.sportLog[dKey(d)]||[]).length>0}
   function hasOvulation(d){return!!state.ovulationDays[dKey(d)]}
