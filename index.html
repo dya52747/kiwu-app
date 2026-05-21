@@ -121,6 +121,39 @@ const PHASES=[
   {name:"Lutealphase",color:"#AB77C4",bg:"#FAF0FF",emoji:"🟣",days:"Tag 17–28",desc:"Sanfter werden – Körper vorbereiten",tip:"Magnesium & Probiotika für Hormonbalance."},
 ];
 function getPhaseIdx(d){if(d<=5)return 0;if(d<=13)return 1;if(d<=16)return 2;return 3}
+
+// Smart phase: uses confirmed ovulation date if available
+function getSmartPhase(){
+  const day=cycleDay();
+  if(!day)return null;
+  const latestOv=typeof getLatestOvulation==="function"?getLatestOvulation():null;
+  if(latestOv){
+    // Ovulation confirmed – calculate phase from ovulation date
+    const ovDate=new Date(latestOv+"T12:00");
+    const todayD=today();
+    todayD.setHours(12,0,0,0);
+    const daysSinceOv=Math.floor((todayD-ovDate)/86400000);
+    if(daysSinceOv<0){
+      // Still before confirmed ovulation → Aufbauphase
+      return{...PHASES[1],idx:1,smart:true};
+    } else if(daysSinceOv===0){
+      // Day of ovulation
+      return{...PHASES[2],idx:2,smart:true};
+    } else {
+      // After ovulation → Lutealphase
+      return{...PHASES[3],idx:3,smart:true,daysSinceOv};
+    }
+  } else {
+    // No ovulation confirmed yet
+    if(day<=5)return{...PHASES[0],idx:0};
+    // Stay in Aufbauphase until ovulation confirmed
+    if(day>16){
+      return{...PHASES[1],idx:1,smart:true,note:"⏳ Warte auf Eisprung-Bestätigung"};
+    }
+    return{...PHASES[getPhaseIdx(day)],idx:getPhaseIdx(day)};
+  }
+}
+
 function getPhase(d){return{...PHASES[getPhaseIdx(d)],idx:getPhaseIdx(d)}}
 
 const ERNAEHRUNG=[
@@ -173,6 +206,7 @@ const SPORT_TYPES=[
   {id:"radfahren",icon:"🚴",label:"Radfahren"},
   {id:"spazieren",icon:"🌿",label:"Spazieren"},
   {id:"dehnen",icon:"🌀",label:"Dehnen"},
+  {id:"bodyattack",icon:"⚡",label:"BodyAttack"},
   {id:"sonstiges",icon:"⭐",label:"Sonstiges"},
 ];
 
@@ -452,7 +486,9 @@ function renderOvulationTracker(){
   </div>`;
 }
 function renderHeute(){
-  const day=cycleDay(),phase=day?getPhase(day):null,sp=day?getSport(day):null;
+  const day=cycleDay();
+  const phase=day?(getSmartPhase()||getPhase(day)):null;
+  const sp=day?getSport(day):null;
   const sfKey=getSFDateKey();
   const sc=state.superChecks[sfKey]||{};
   const stim=isStimActive(),sd=stimDay();
@@ -461,7 +497,7 @@ function renderHeute(){
   const sfIsToday=sfKey===todayKey();
   const sfLabel=sfIsToday?"Heute":new Date(sfDate+"T12:00").toLocaleDateString("de-DE",{weekday:"short",day:"numeric",month:"short"});
   return`
-    ${phase&&!stim?`<div class="card" style="border-left:4px solid ${phase.color}"><div class="ct">${phase.emoji} ${phase.name} · ${phase.days}</div><div style="font-size:13px;color:var(--text-soft);margin-bottom:4px">${phase.desc}</div><div style="font-size:12px;color:#B8927C;font-style:italic">💡 ${phase.tip}</div></div>`:""}
+    ${phase&&!stim?`<div class="card" style="border-left:4px solid ${phase.color}"><div class="ct">${phase.emoji} ${phase.name}${phase.days?" · "+phase.days:""}</div><div style="font-size:13px;color:var(--text-soft);margin-bottom:4px">${phase.desc}</div>${phase.note?`<div style="background:#FFF8E1;border-radius:8px;padding:6px 10px;font-size:12px;color:#E65100;margin-bottom:4px">${phase.note}</div>`:""}<div style="font-size:12px;color:#B8927C;font-style:italic">💡 ${phase.tip}</div></div>`:""}
     ${stim?`<div class="card" style="background:#FFF5F5;border-left:4px solid var(--stim)"><div class="ct stim">💉 Stimulationsphase – Tag ${sd}</div>${state.stim.afterTransfer?`<div style="background:#FFEBEE;border-radius:10px;padding:8px;font-size:13px;color:var(--stim);font-weight:bold;margin-bottom:6px">🌸 Nach dem Transfer – Ruhe!</div>`:""}<div style="font-size:13px;color:#C62828">Nur Yoga + sanftes Spazieren erlaubt</div></div>`:""}
     <div class="card" style="background:linear-gradient(135deg,#8B4A6B,#C4797A,#E8A87C);border-radius:18px;padding:16px;margin:10px 12px 0">
       <div style="color:rgba(255,255,255,0.85);font-size:11px;margin-bottom:10px;font-weight:bold">📊 HEUTE AUF EINEN BLICK</div>
@@ -488,7 +524,7 @@ function renderHeute(){
         </div>
       </div>
     </div>
-    ${sp?`<div class="card"><div class="ct">${stim?"💉":"🏃"} Sport-Empfehlung heute</div>${sportRows(sp,stim)}${stim?`<div style="margin-top:8px;font-size:12px;color:var(--stim);font-style:italic">⚠️ Keine intensiven Sportarten!</div>`:sp?.note?`<div style="margin-top:6px;font-size:12px;color:#B8927C;font-style:italic">💡 ${sp.note}</div>`:""}</div>`:""}
+    ${sp?`<div class="card"><div class="ct">${stim?"💉":"🏃"} Sport-Empfehlung heute</div>${sportRows(sp,stim)}${stim?`<div style="margin-top:8px;font-size:12px;color:var(--stim);font-style:italic">⚠️ Keine intensiven Sportarten!</div>`:(phase?.note||sp?.note)?`<div style="margin-top:6px;font-size:12px;color:#B8927C;font-style:italic">💡 ${phase?.note||sp?.note}</div>`:""}</div>`:""}
     ${renderSportTracking()}
     <div class="card">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
@@ -507,7 +543,8 @@ function renderHeute(){
 
 function renderErnaehrung(){
   const day=cycleDay();
-  const currentIdx=day?getPhaseIdx(day):0;
+  const smartP=day?getSmartPhase():null;
+  const currentIdx=smartP?smartP.idx:(day?getPhaseIdx(day):0);
   const showIdx=state.ernaehrungPhase!==null?state.ernaehrungPhase:currentIdx;
   const data=ERNAEHRUNG[showIdx];
   const phase=PHASES[showIdx];
@@ -757,7 +794,8 @@ function render(){
       <div class="ht">🌸 Meine KiWu-App</div>
       <div class="hd">${formatDate(today())}</div>
       <div class="hchips">
-        ${day&&phase?`<div class="chip"><div class="chip-l">Zyklustag</div><div class="chip-v">${day}</div></div><div class="chip"><div class="chip-l">Phase</div><div class="chip-v sm">${phase.emoji} ${phase.name}</div></div>`:""}
+        ${day?`<div class="chip"><div class="chip-l">Zyklustag</div><div class="chip-v">${day}</div></div>`:""}
+        ${phase?`<div class="chip"><div class="chip-l">Phase</div><div class="chip-v sm">${phase.emoji} ${phase.name}</div></div>`:""}
         ${stim?`<div class="chip"><div class="chip-l">Stimulation</div><div class="chip-v sm">💉 Tag ${sd}</div></div>`:""}
         ${getTodaySportLogs().length>0?`<div class="chip"><div class="chip-l">Sport</div><div class="chip-v sm">🏃 ${getTodaySportLogs().reduce((s,l)=>s+l.duration,0)} Min</div></div>`:""}
       </div>
