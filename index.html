@@ -257,13 +257,28 @@ let state={
   lastSaved:null,bleedingDays:{},calMonth:null,
   sportLog:{},sportAddMode:false,sportSelType:null,sportSelDuration:30,sportSelIntensity:"mittel",sportSelDate:null,superfoodDate:null,ovulationDays:{},ovulationInput:"",lutealLength:14,
   ernaehrungPhase:null,
+  cycles:[],
+  showCycleHistory:false,
+  newCycleMode:false,
 };
 
 async function loadState(){
   try{
-    const [cd1,sc,ml,stim,ls,bd,sl,ov,ll]=await Promise.all([storeGet('cd1'),storeGet('sc'),storeGet('ml'),storeGet('stim'),storeGet('ls'),storeGet('bd'),storeGet('sl'),storeGet('ov'),storeGet('ll')]);
-    state.cycleDay1=cd1?new Date(cd1):null;state.superChecks=sc||{};state.madyLog=ml||{};
-    state.bleedingDays=bd||{};state.sportLog=sl||{};state.apiKey=ak||"";if(stim)state.stim={...state.stim,...stim};
+    const [cd1,sc,ml,stim,ls,bd,sl,ov,ll,cy]=await Promise.all([storeGet('cd1'),storeGet('sc'),storeGet('ml'),storeGet('stim'),storeGet('ls'),storeGet('bd'),storeGet('sl'),storeGet('ov'),storeGet('ll'),storeGet('cy')]);
+    state.superChecks=sc||{};state.madyLog=ml||{};
+    state.bleedingDays=bd||{};state.sportLog=sl||{};
+    state.ovulationDays=ov||{};state.lutealLength=ll||14;
+    state.cycles=cy||[];
+    // Migrate from old single cycleDay1
+    if(state.cycles.length===0&&cd1){
+      const startStr=new Date(cd1).toISOString().split('T')[0];
+      state.cycles=[{id:"cycle_1",startDate:startStr,endDate:null,ovulationDate:null,ovulationDay:null,length:null}];
+      await saveKey('cy',state.cycles);
+    }
+    // Set cycleDay1 from active cycle
+    const activeCycle=state.cycles.find(c=>!c.endDate);
+    state.cycleDay1=activeCycle?new Date(activeCycle.startDate):(cd1?new Date(cd1):null);
+    if(stim)state.stim={...state.stim,...stim};
     state.lastSaved=ls||null;const n=today();state.calMonth={year:n.getFullYear(),month:n.getMonth()};
   }catch(e){}
 }
@@ -484,6 +499,79 @@ function renderOvulationTracker(){
         </div>`).join("")}
     </div>`:""}
   </div>`;
+}
+
+// ─── CYCLE MANAGEMENT ──────────────────────
+function currentCycle(){return state.cycles.find(c=>!c.endDate)||null}
+
+function allCycles(){return [...state.cycles].reverse()} // newest first
+
+function cycleLength(c){
+  if(!c.endDate)return null;
+  const s=new Date(c.startDate+"T12:00");
+  const e=new Date(c.endDate+"T12:00");
+  return Math.round((e-s)/86400000)+1;
+}
+
+async function startNewCycle(){
+  const todayStr=todayKey();
+  // Close current cycle
+  const cur=currentCycle();
+  if(cur){
+    const yesterday=new Date(today());
+    yesterday.setDate(yesterday.getDate()-1);
+    cur.endDate=yesterday.toISOString().split('T')[0];
+    cur.length=cycleLength(cur);
+    // Check if ovulation was in this cycle
+    const ovInCycle=Object.keys(state.ovulationDays)
+      .filter(k=>state.ovulationDays[k]&&k>=cur.startDate&&k<=cur.endDate)
+      .sort().pop();
+    if(ovInCycle){
+      cur.ovulationDate=ovInCycle;
+      const start=new Date(cur.startDate+"T12:00");
+      const ov=new Date(ovInCycle+"T12:00");
+      cur.ovulationDay=Math.round((ov-start)/86400000)+1;
+      cur.lutealLength=cur.length-cur.ovulationDay;
+    }
+  }
+  // Create new cycle
+  const newId="cycle_"+(state.cycles.length+1);
+  const newCycle={id:newId,startDate:todayStr,endDate:null,ovulationDate:null,ovulationDay:null,length:null,lutealLength:state.lutealLength};
+  state.cycles.push(newCycle);
+  state.cycleDay1=new Date(todayStr);
+  state.newCycleMode=false;
+  await saveKey('cy',state.cycles);
+  await saveKey('cd1',state.cycleDay1.toISOString());
+  render();
+}
+
+function renderCycleHistory(){
+  const past=state.cycles.filter(c=>c.endDate).reverse();
+  if(!past.length)return`<div style="text-align:center;padding:16px;font-size:13px;color:var(--text-soft)">Noch keine abgeschlossenen Zyklen.</div>`;
+  return past.map((c,i)=>{
+    const start=new Date(c.startDate+"T12:00").toLocaleDateString("de-DE",{day:"numeric",month:"short",year:"numeric"});
+    const end=new Date(c.endDate+"T12:00").toLocaleDateString("de-DE",{day:"numeric",month:"short"});
+    return`<div style="padding:10px 0;border-bottom:1px solid #F5EEF8">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+        <div style="font-size:13px;font-weight:bold;color:var(--rose)">Zyklus ${state.cycles.length-past.length+i+1}</div>
+        <div style="font-size:11px;color:var(--text-soft)">${start} – ${end}</div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px">
+        <div style="background:#F5EEF8;border-radius:8px;padding:6px;text-align:center">
+          <div style="font-size:10px;color:var(--text-soft)">Länge</div>
+          <div style="font-size:14px;font-weight:bold;color:var(--rose)">${c.length||"?"} T.</div>
+        </div>
+        <div style="background:#F0FFF4;border-radius:8px;padding:6px;text-align:center">
+          <div style="font-size:10px;color:var(--text-soft)">Eisprung</div>
+          <div style="font-size:14px;font-weight:bold;color:#2E7D32">${c.ovulationDay?"Tag "+c.ovulationDay:"?"}</div>
+        </div>
+        <div style="background:#FAF0FF;border-radius:8px;padding:6px;text-align:center">
+          <div style="font-size:10px;color:var(--text-soft)">Luteal</div>
+          <div style="font-size:14px;font-weight:bold;color:#AB77C4">${c.lutealLength?""+c.lutealLength+" T.":"?"}</div>
+        </div>
+      </div>
+    </div>`;
+  }).join("");
 }
 function renderHeute(){
   const day=cycleDay();
@@ -707,10 +795,43 @@ function renderZyklus(){
     </div>
     <div class="card">
       <div class="ct">📅 Zyklus-Einstellungen</div>
-      ${day?`<div style="background:var(--rose-bg);border-radius:10px;padding:10px;margin-bottom:10px;font-size:13px"><span style="color:var(--rose);font-weight:bold">Zyklustag ${day}</span> · ${getPhase(day).emoji} ${getPhase(day).name}</div>`:""}
-      <div class="lbl">1. Zyklustag</div>
-      <input type="date" id="new-day1" class="inp" style="margin-bottom:10px" value="${state.cycleDay1?state.cycleDay1.toISOString().split('T')[0]:''}" max="${today().toISOString().split('T')[0]}">
-      <button class="btn pri full" onclick="setNewDay1()">Zyklus aktualisieren 🌸</button>
+      ${day?`<div style="background:var(--rose-bg);border-radius:10px;padding:10px;margin-bottom:10px;font-size:13px"><span style="color:var(--rose);font-weight:bold">Zyklustag ${day}</span> · ${phase?phase.emoji+" "+phase.name:""}</div>`:""}
+      ${!state.newCycleMode?`
+        <button class="btn pri full" onclick="state.newCycleMode=true;render()" style="margin-bottom:8px">🌸 Neuer Zyklus starten</button>
+        <div style="font-size:11px;color:var(--text-soft);text-align:center">Alter Zyklus wird automatisch gespeichert</div>
+      `:`
+        <div style="background:#FDF0F5;border-radius:12px;padding:14px;margin-bottom:8px">
+          <div style="font-size:13px;font-weight:bold;color:var(--rose);margin-bottom:8px">🌸 Neuer Zyklus</div>
+          <div style="font-size:12px;color:var(--text-soft);margin-bottom:10px">Der aktuelle Zyklus wird abgeschlossen und gespeichert. Heute wird als Tag 1 des neuen Zyklus gesetzt.</div>
+          <div style="display:flex;gap:8px">
+            <button class="btn pri full" onclick="startNewCycle()">✅ Jetzt starten</button>
+            <button class="btn gray sm" onclick="state.newCycleMode=false;render()">Abbrechen</button>
+          </div>
+        </div>
+      `}
+    </div>
+
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+        <div class="ct" style="margin-bottom:0">📊 Zyklusverlauf</div>
+        <button onclick="state.showCycleHistory=!state.showCycleHistory;render()" style="background:none;border:none;font-size:12px;color:var(--rose);cursor:pointer">${state.showCycleHistory?"▲ Einklappen":"▼ Anzeigen"}</button>
+      </div>
+      ${state.showCycleHistory?renderCycleHistory():`
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">
+          <div style="text-align:center;padding:8px;background:#F5EEF8;border-radius:10px">
+            <div style="font-size:10px;color:var(--text-soft)">Zyklen</div>
+            <div style="font-size:20px;font-weight:bold;color:var(--rose)">${state.cycles.length}</div>
+          </div>
+          <div style="text-align:center;padding:8px;background:#F0FFF4;border-radius:10px">
+            <div style="font-size:10px;color:var(--text-soft)">Ø Eisprung</div>
+            <div style="font-size:20px;font-weight:bold;color:#2E7D32">${(()=>{const withOv=state.cycles.filter(c=>c.ovulationDay);return withOv.length?Math.round(withOv.reduce((s,c)=>s+c.ovulationDay,0)/withOv.length)+"d":"–"})()}</div>
+          </div>
+          <div style="text-align:center;padding:8px;background:#FAF0FF;border-radius:10px">
+            <div style="font-size:10px;color:var(--text-soft)">Ø Länge</div>
+            <div style="font-size:20px;font-weight:bold;color:#AB77C4">${(()=>{const withLen=state.cycles.filter(c=>c.length);return withLen.length?Math.round(withLen.reduce((s,c)=>s+c.length,0)/withLen.length)+"d":"–"})()}</div>
+          </div>
+        </div>
+      `}
     </div>
     ${renderOvulationTracker()}
     ${entries.length?`<div class="card"><div class="ct">🏃 Sport-Verlauf (14 Tage)</div>${entries.map(e=>`<div style="padding:8px 0;border-bottom:1px solid #F5EEF8"><div style="font-size:11px;color:var(--text-soft);margin-bottom:4px">${e.date.toLocaleDateString("de-DE",{weekday:"short",day:"numeric",month:"short"})}</div>${e.logs.map(l=>`<div style="display:flex;align-items:center;gap:6px;margin-bottom:3px"><span style="font-size:16px">${l.icon}</span><span style="font-size:12px;font-weight:bold">${l.label}</span><span style="font-size:11px;color:var(--text-soft)">${l.duration} Min · ${intensityLabel(l.intensity)}${l.note?` · ${l.note}`:""}</span></div>`).join("")}</div>`).join("")}</div>`:`<div class="card"><div class="ct">🏃 Sport-Verlauf</div><div style="text-align:center;padding:16px;font-size:13px;color:var(--text-soft)">Noch kein Sport geloggt. Los geht's! 🌸</div></div>`}`;
@@ -775,7 +896,7 @@ async function setStimDate(t,v){if(t==='start')state.stim.startDate=v?new Date(v
 async function toggleAT(){state.stim.afterTransfer=!state.stim.afterTransfer;render();await saveKey('stim',state.stim)}
 
 function exportData(){
-  const p={version:"7.1",exported:new Date().toISOString(),cycleDay1:state.cycleDay1?.toISOString()||null,superChecks:state.superChecks,madyLog:state.madyLog,stim:state.stim,sportLog:state.sportLog,ovulationDays:state.ovulationDays,lutealLength:state.lutealLength};
+  const p={version:"8.0",exported:new Date().toISOString(),cycleDay1:state.cycleDay1?.toISOString()||null,superChecks:state.superChecks,madyLog:state.madyLog,stim:state.stim,sportLog:state.sportLog,ovulationDays:state.ovulationDays,lutealLength:state.lutealLength,cycles:state.cycles};
   const blob=new Blob([JSON.stringify(p,null,2)],{type:"application/json"});
   const url=URL.createObjectURL(blob);const a=document.createElement("a");a.href=url;a.download=`kiwu-backup-${new Date().toISOString().split('T')[0]}.json`;a.click();URL.revokeObjectURL(url);
 }
@@ -787,7 +908,7 @@ async function importData(input){
     state.cycleDay1=data.cycleDay1?new Date(data.cycleDay1):null;
     state.superChecks=data.superChecks||{};state.madyLog=data.madyLog||{};state.sportLog=data.sportLog||{};
     if(data.stim)state.stim={...state.stim,...data.stim};
-    await Promise.all([saveKey('cd1',state.cycleDay1?.toISOString()||null),saveKey('sc',state.superChecks),saveKey('ml',state.madyLog),saveKey('stim',state.stim),saveKey('sl',state.sportLog),saveKey('ov',state.ovulationDays),saveKey('ll',state.lutealLength)]);
+    state.cycles=data.cycles||[];await Promise.all([saveKey('cd1',state.cycleDay1?.toISOString()||null),saveKey('sc',state.superChecks),saveKey('ml',state.madyLog),saveKey('stim',state.stim),saveKey('sl',state.sportLog),saveKey('ov',state.ovulationDays),saveKey('ll',state.lutealLength),saveKey('cy',state.cycles)]);
     alert("✅ Import erfolgreich!");render();
   }catch(e){alert("Fehler: "+e.message)}input.value="";
 }
