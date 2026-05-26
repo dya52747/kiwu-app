@@ -677,6 +677,7 @@ function renderErnaehrung(){
 function renderZyklus(){
   if(!state.calMonth){state.calMonth={year:today().getFullYear(),month:today().getMonth()};}
   const day=cycleDay();
+  const phase=day?(getSmartPhase()||getPhase(day)):null;
   const {year,month}=state.calMonth;
   const monthNames=["Januar","Februar","März","April","Mai","Juni","Juli","August","September","Oktober","November","Dezember"];
   const daysInMonth=new Date(year,month+1,0).getDate();
