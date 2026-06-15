@@ -195,19 +195,29 @@ const SUPERFOODS=[
 ];
 
 const SPORT_TYPES=[
-  {id:"yoga",icon:"🧘",label:"Mady Yoga"},
-  {id:"walking",icon:"🚶",label:"Nord. Walking"},
-  {id:"pilates",icon:"🤸",label:"Pilates"},
-  {id:"trx",icon:"💪",label:"TRX"},
-  {id:"bodybalance",icon:"☯️",label:"BodyBalance"},
-  {id:"tone",icon:"🏋️",label:"Tone/Core"},
-  {id:"joggen",icon:"🏃",label:"Joggen"},
-  {id:"schwimmen",icon:"🏊",label:"Schwimmen"},
-  {id:"radfahren",icon:"🚴",label:"Radfahren"},
-  {id:"spazieren",icon:"🌿",label:"Spazieren"},
-  {id:"dehnen",icon:"🌀",label:"Dehnen"},
-  {id:"bodyattack",icon:"⚡",label:"BodyAttack"},
-  {id:"sonstiges",icon:"⭐",label:"Sonstiges"},
+  // Laufen & Cardio
+  {id:"joggen",icon:"🏃",label:"Joggen",cat:"Cardio"},
+  {id:"schwimmen",icon:"🏊",label:"Schwimmen",cat:"Cardio"},
+  {id:"radfahren",icon:"🚴",label:"Radfahren",cat:"Cardio"},
+  {id:"walking",icon:"🚶",label:"Nord. Walking",cat:"Cardio"},
+  {id:"spazieren",icon:"🌿",label:"Spazieren",cat:"Cardio"},
+  // Les Mills
+  {id:"bodyattack",icon:"⚡",label:"BodyAttack",cat:"Les Mills"},
+  {id:"bodypump",icon:"🏋️",label:"BodyPump",cat:"Les Mills"},
+  {id:"bodybalance",icon:"☯️",label:"BodyBalance",cat:"Les Mills"},
+  {id:"lesmills_core",icon:"🔥",label:"Core",cat:"Les Mills"},
+  {id:"bodycombat",icon:"🥊",label:"BodyCombat",cat:"Les Mills"},
+  {id:"cxworx",icon:"💥",label:"CX Works",cat:"Les Mills"},
+  // Yoga & Mobility
+  {id:"yoga",icon:"🧘",label:"Mady Yoga",cat:"Yoga"},
+  {id:"pilates",icon:"🤸",label:"Pilates",cat:"Yoga"},
+  {id:"dehnen",icon:"🌀",label:"Dehnen",cat:"Yoga"},
+  // Kraft
+  {id:"trx",icon:"💪",label:"TRX",cat:"Kraft"},
+  {id:"tone",icon:"🏋️",label:"Tone/Core",cat:"Kraft"},
+  {id:"krafttraining",icon:"🦾",label:"Krafttraining",cat:"Kraft"},
+  // Sonstiges
+  {id:"sonstiges",icon:"⭐",label:"Sonstiges",cat:"Sonstiges"},
 ];
 
 // SPORT-Empfehlungen – phasenbasiert & wissenschaftlich korrekt
@@ -230,19 +240,19 @@ const SPORT={
   12:{y:"✅",nw:"✅",pi:"✅", bb:"✅", trx:"✅",to:"✅",jog:"✅"},
   13:{y:"✅",nw:"✅",pi:"✅", bb:"✅", trx:"✅",to:"✅",jog:"✅", note:"Peak nähert sich!"},
   // 🟢 EISPRUNG Tag 14–16: Biologisches Hoch – ALLES empfohlen
-  14:{y:"✅",nw:"✅",pi:"✅",trx:"✅",bb:"✅",to:"✅",jog:"✅", note:"Biologisches Hoch – alles möglich! 🏃"},
-  15:{y:"✅",nw:"✅",pi:"✅",trx:"✅",bb:"✅",to:"✅",jog:"✅", note:"Volle Energie – Bestleistungen möglich!"},
-  16:{y:"✅",nw:"✅",pi:"✅",trx:"✅",bb:"✅",to:"✅",jog:"✅", note:"Krafttag – maximale Leistung"},
+  14:{y:"✅",nw:"✅",pi:"✅",trx:"✅",bb:"✅",to:"✅",jog:"✅",ba:"✅",core:"✅",kraft:"✅", note:"Biologisches Hoch – alles möglich! 🏃"},
+  15:{y:"✅",nw:"✅",pi:"✅",trx:"✅",bb:"✅",to:"✅",jog:"✅",ba:"✅",core:"✅",kraft:"✅", note:"Volle Energie – Bestleistungen möglich!"},
+  16:{y:"✅",nw:"✅",pi:"✅",trx:"✅",bb:"✅",to:"✅",jog:"✅",ba:"✅",core:"✅",kraft:"✅", note:"Krafttag – maximale Leistung"},
   // 🟣 LUTEALPHASE Tag 17–28: Energie nimmt ab – schrittweise reduzieren
-  17:{y:"✅",nw:"✅",pi:"✅",bb:"✅", trx:"✅",to:"✅",jog:"✅"},
-  18:{y:"✅",nw:"✅",pi:"✅",bb:"✅", trx:"💛",to:"✅",jog:"✅"},
-  19:{y:"✅",nw:"✅",pi:"✅",bb:"💛", trx:"💛",to:"💛",jog:"✅"},
-  20:{y:"✅",nw:"✅",pi:"✅",bb:"💛", trx:"💛",to:"💛",jog:"💛"},
-  21:{y:"✅",nw:"✅",pi:"💛",bb:"💛", jog:"💛",                note:"Ruhephase beginnt"},
-  22:{y:"✅",nw:"✅",pi:"💛",bb:"💛", jog:"💛"},
-  23:{y:"✅",nw:"✅",pi:"💛",         jog:"💛"},
-  24:{y:"✅",nw:"💛",pi:"💛",         jog:"💛",                note:"Intensität reduzieren"},
-  25:{y:"✅",nw:"💛",pi:"💛",         jog:"💛"},
+  17:{y:"✅",nw:"✅",pi:"✅",bb:"✅",trx:"✅",to:"✅",jog:"✅",ba:"💛",core:"✅",kraft:"💛"},
+  18:{y:"✅",nw:"✅",pi:"✅",bb:"✅",trx:"💛",to:"✅",jog:"✅",ba:"💛",core:"✅",kraft:"💛"},
+  19:{y:"✅",nw:"✅",pi:"✅",bb:"💛",trx:"💛",to:"💛",jog:"✅",ba:"💛",core:"✅",kraft:"💛"},
+  20:{y:"✅",nw:"✅",pi:"✅",bb:"💛",trx:"💛",to:"💛",jog:"💛",ba:0,core:"✅",kraft:"💛"},
+  21:{y:"✅",nw:"✅",pi:"💛",bb:"💛",jog:"💛",core:"✅",kraft:"💛",note:"Ruhephase beginnt"},
+  22:{y:"✅",nw:"✅",pi:"💛",bb:"💛",jog:"💛",core:"✅",kraft:"💛"},
+  23:{y:"✅",nw:"✅",pi:"💛",jog:"💛",core:"💛",kraft:0},
+  24:{y:"✅",nw:"💛",pi:"💛",jog:"💛",core:"💛",kraft:0,note:"Intensität reduzieren"},
+  25:{y:"✅",nw:"💛",pi:"💛",jog:"💛",core:"💛"},
   26:{y:"✅",nw:"💛",pi:"💛"},
   27:{y:"✅",nw:"💛",                                          note:"Sanfter werden"},
   28:{y:"✅",nw:"💛",                                          note:"Vor Menstruation – Ruhe"},
@@ -295,8 +305,23 @@ function fmtSaved(iso){if(!iso)return"noch nie";const d=new Date(iso);return d.t
 
 function stag(v){if(!v)return`<span class="stag no">❌ Pause</span>`;if(v==="✅")return`<span class="stag yes">✅ Empfohlen</span>`;if(v==="💛")return`<span class="stag light">💛 Leicht</span>`;return`<span class="stag yes">${v}</span>`}
 function sportRows(sp,stim){
-  if(stim)return[["🧘 Mady Yoga","✅"],["🚶 Nordic Walking","💛"],["🤸 Pilates",0],["💪 TRX",0],["☯️ BodyBalance",0],["🏋️ Tone/Core",0],["🏃 Joggen",0]].map(([n,v])=>`<div class="sprow"><span style="font-size:13px">${n}</span>${stag(v)}</div>`).join("");
-  return[["🧘 Mady Yoga",sp.y||0],["🚶 Nordic Walking",sp.nw||0],["🤸 Pilates",sp.pi||0],["💪 TRX",sp.trx||0],["☯️ BodyBalance",sp.bb||0],["🏋️ Tone/Core",sp.to||0],["🏃 Joggen",sp.jog||0]].map(([n,v])=>`<div class="sprow"><span style="font-size:13px">${n}</span>${stag(v)}</div>`).join("");
+  if(stim)return[
+    ["🧘 Mady Yoga","✅"],["🚶 Nordic Walking","💛"],["🤸 Pilates","💛"],
+    ["⚡ BodyAttack",0],["🏋️ BodyPump",0],["☯️ BodyBalance","💛"],
+    ["🔥 Core (LM)","✅"],["💪 TRX",0],["🏃 Joggen",0],["🦾 Krafttraining",0]
+  ].map(([n,v])=>`<div class="sprow"><span style="font-size:13px">${n}</span>${stag(v)}</div>`).join("");
+  return[
+    ["🧘 Mady Yoga",sp.y||0],
+    ["🚶 Nordic Walking",sp.nw||0],
+    ["🤸 Pilates",sp.pi||0],
+    ["💪 TRX",sp.trx||0],
+    ["☯️ BodyBalance",sp.bb||0],
+    ["🏋️ Tone/Core",sp.to||0],
+    ["🏃 Joggen",sp.jog||0],
+    ["⚡ BodyAttack",sp.ba||0],
+    ["🔥 Core (LM)",sp.core||0],
+    ["🦾 Krafttraining",sp.kraft||0],
+  ].map(([n,v])=>`<div class="sprow"><span style="font-size:13px">${n}</span>${stag(v)}</div>`).join("");
 }
 
 
@@ -364,9 +389,19 @@ function renderSportTracking(){
     <div style="background:var(--rose-bg);border-radius:14px;padding:14px">
       <div style="font-size:13px;font-weight:bold;color:var(--rose);margin-bottom:4px">Welchen Sport?</div>
       ${!isToday2?`<div style="font-size:11px;color:var(--orange);margin-bottom:10px">📅 Wird für ${selDateLabel} eingetragen</div>`:`<div style="margin-bottom:10px"></div>`}
-      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:12px">
-        ${SPORT_TYPES.map(s=>`<button class="sport-btn ${state.sportSelType===s.id?'done':'idle'}" onclick="setSportType('${s.id}')"><div class="sb-icon">${s.icon}</div><div class="sb-label">${s.label}</div></button>`).join("")}
-      </div>
+      ${(()=>{
+        const cats=[...new Set(SPORT_TYPES.map(s=>s.cat))];
+        return cats.map(cat=>{
+          const types=SPORT_TYPES.filter(s=>s.cat===cat);
+          const catEmoji={"Cardio":"🏃","Les Mills":"⚡","Yoga & Mobility":"🧘","Yoga":"🧘","Kraft":"💪","Sonstiges":"⭐"}[cat]||"";
+          return`<div style="margin-bottom:10px">
+            <div style="font-size:10px;font-weight:bold;color:var(--text-soft);margin-bottom:5px;text-transform:uppercase;letter-spacing:1px">${catEmoji} ${cat}</div>
+            <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:5px">
+              ${types.map(s=>`<button class="sport-btn ${state.sportSelType===s.id?'done':'idle'}" onclick="setSportType('${s.id}')"><div class="sb-icon">${s.icon}</div><div class="sb-label">${s.label}</div></button>`).join("")}
+            </div>
+          </div>`;
+        }).join("");
+      })()}
       <div style="font-size:11px;color:var(--text-soft);margin-bottom:6px;font-weight:bold">⏱ Dauer</div>
       <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px">${[15,20,30,45,60,75,90].map(d=>`<button class="dur-chip ${state.sportSelDuration===d?'sel':''}" onclick="setSportDuration(${d})">${d} Min</button>`).join("")}</div>
       <div style="font-size:11px;color:var(--text-soft);margin-bottom:6px;font-weight:bold">💪 Intensität</div>
