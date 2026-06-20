@@ -834,7 +834,21 @@ function renderZyklus(){
         ${["Mo","Di","Mi","Do","Fr","Sa","So"].map(d=>`<div style="text-align:center;font-size:9px;color:var(--text-soft);padding:2px 0;font-weight:bold">${d}</div>`).join("")}
       </div>
       <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:3px">
-        ${cells.map(d=>{if(!d)return`<div></div>`;const isTd=isThisMonth&&d===todayD.getDate();return`<div style="aspect-ratio:1;border-radius:8px;background:${cdBg(d)};display:flex;flex-direction:column;align-items:center;justify-content:center;position:relative;border:${isTd?"2px solid var(--rose)":"none"}"><span style="font-size:11px;font-weight:${isTd?"bold":"normal"};color:${isTd?"var(--rose)":"var(--text)"}">${d}</span>${hasSport(d)?`<span style="font-size:7px;position:absolute;bottom:1px">🏃</span>`:""}</div>`;}).join("")}
+        ${cells.map(d=>{
+          if(!d)return"<div></div>";
+          const isTd=isThisMonth&&d===todayD.getDate();
+          const isOvDay=hasOvulation(d);
+          const isPP2=isPredPeriod(d);
+          const isPNO2=isPredOv(d);
+          const hasSp=hasSport(d);
+          const icon=isOvDay?"🟢":isPP2?"🔴":isPNO2?"🔵":hasSp?"🏃":"";
+          const bg=isOvDay?"#C8E6C9":isPP2?"#FFCDD2":isPNO2?"#BBDEFB":cdBg(d);
+          const borderCol=isOvDay?"2px solid #66BB6A":isPP2?"2px solid #E57373":isPNO2?"2px solid #5C9BD6":isTd?"2px solid var(--rose)":"none";
+          return "<div style='aspect-ratio:1;border-radius:8px;background:"+bg+";display:flex;flex-direction:column;align-items:center;justify-content:center;position:relative;border:"+borderCol+"'>"
+            +"<span style='font-size:11px;font-weight:"+(isTd?"bold":"normal")+";color:"+(isTd?"var(--rose)":"var(--text)")+"'>"+d+"</span>"
+            +(icon?"<span style='font-size:7px;position:absolute;bottom:1px'>"+icon+"</span>":"")
+            +"</div>";
+        }).join("")}
       </div>
       <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px">
         ${[["#FFCDD2","Mens."],["#BBDEFB","Aufbau"],["#C8E6C9","Eisprung"],["#E1BEE7","Luteal"]].map(([c,l])=>`<div style="display:flex;align-items:center;gap:3px"><div style="width:10px;height:10px;border-radius:3px;background:${c}"></div><span style="font-size:10px;color:var(--text-soft)">${l}</span></div>`).join("")}
