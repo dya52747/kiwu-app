@@ -261,6 +261,49 @@ const SPORT={
 };
 function getSport(d){return SPORT[Math.min(d,30)]||SPORT[30]}
 
+// ─── SPORT EMPFEHLUNG NACH DPO ─────────────
+// Wenn Eisprung bestätigt → Sport nach DPO statt Zyklustag
+// y=Yoga, nw=NordicWalking, pi=Pilates, trx=TRX, bb=BodyBalance
+// to=Tone/Core, jog=Joggen, ba=BodyAttack, core=CoreLM, kraft=Krafttraining
+const SPORT_DPO={
+  // DPO 0-2: Direkt nach Eisprung – noch volle Energie
+  0:{y:"✅",nw:"✅",pi:"✅",trx:"✅",bb:"✅",to:"✅",jog:"✅",ba:"✅",core:"✅",kraft:"✅",note:"Eisprung heute – volle Energie noch möglich"},
+  1:{y:"✅",nw:"✅",pi:"✅",trx:"✅",bb:"✅",to:"✅",jog:"✅",ba:"✅",core:"✅",kraft:"✅"},
+  2:{y:"✅",nw:"✅",pi:"✅",trx:"💛",bb:"✅",to:"✅",jog:"✅",ba:"💛",core:"✅",kraft:"💛"},
+  // DPO 3-5: Frühe Lutealphase – moderat
+  3:{y:"✅",nw:"✅",pi:"✅",trx:"💛",bb:"✅",to:"💛",jog:"✅",ba:"💛",core:"✅",kraft:"💛",note:"Frühe Lutealphase – moderat bleiben"},
+  4:{y:"✅",nw:"✅",pi:"✅",trx:"💛",bb:"💛",to:"💛",jog:"💛",ba:0,core:"✅",kraft:"💛"},
+  5:{y:"✅",nw:"✅",pi:"✅",trx:0,bb:"💛",to:"💛",jog:"💛",ba:0,core:"✅",kraft:"💛"},
+  // DPO 6-9: Mögliche Einnistung – sanft!
+  6:{y:"✅",nw:"✅",pi:"💛",trx:0,bb:"💛",to:0,jog:0,ba:0,core:"💛",kraft:0,note:"Mögliche Einnistung – jetzt sanft! 🌸"},
+  7:{y:"✅",nw:"✅",pi:"💛",trx:0,bb:"💛",to:0,jog:0,ba:0,core:"💛",kraft:0,note:"Einnistungsfenster – Ruhe bevorzugen"},
+  8:{y:"✅",nw:"✅",pi:"💛",trx:0,bb:0,to:0,jog:0,ba:0,core:"💛",kraft:0},
+  9:{y:"✅",nw:"✅",pi:"💛",trx:0,bb:0,to:0,jog:0,ba:0,core:0,kraft:0},
+  // DPO 10+: Späte Lutealphase – sehr sanft
+  10:{y:"✅",nw:"💛",pi:"💛",trx:0,bb:0,to:0,jog:0,ba:0,core:0,kraft:0,note:"Späte Lutealphase – sehr sanft"},
+  11:{y:"✅",nw:"💛",pi:0,trx:0,bb:0,to:0,jog:0,ba:0,core:0,kraft:0},
+  12:{y:"✅",nw:"💛",pi:0,trx:0,bb:0,to:0,jog:0,ba:0,core:0,kraft:0},
+  13:{y:"✅",nw:"💛",pi:0,trx:0,bb:0,to:0,jog:0,ba:0,core:0,kraft:0},
+  14:{y:"✅",nw:"💛",pi:0,trx:0,bb:0,to:0,jog:0,ba:0,core:0,kraft:0,note:"Testzeit nähert sich 🌸"},
+};
+
+function getDPO(){
+  const ov=getLatestOvulation();
+  if(!ov)return null;
+  const ovDate=new Date(ov+"T12:00");
+  const todayD=today();todayD.setHours(12,0,0,0);
+  return Math.floor((todayD-ovDate)/86400000);
+}
+
+function getSmartSport(){
+  const dpo=getDPO();
+  if(dpo===null)return null;
+  if(dpo<0)return null; // Before confirmed ovulation
+  const key=Math.min(dpo,14);
+  return SPORT_DPO[key]||SPORT_DPO[14];
+}
+
+
 let state={
   tab:"heute",cycleDay1:null,superChecks:{},madyLog:{},
   stim:{active:false,startDate:null,etDate:null,afterTransfer:false},
@@ -612,8 +655,10 @@ function renderHeute(){
   const day=cycleDay();
   const phase=day?(getSmartPhase()||getPhase(day)):null;
   const latestOv=getLatestOvulation();
+  const smartSp=getSmartSport();
   const sportDay=day?((!latestOv&&day>13)?13:day):null;
-  const sp=sportDay?getSport(sportDay):null;
+  const sp=smartSp||(sportDay?getSport(sportDay):null);
+  const dpo=getDPO();
   const sfKey=getSFDateKey();
   const sc=state.superChecks[sfKey]||{};
   const stim=isStimActive(),sd=stimDay();
@@ -649,7 +694,7 @@ function renderHeute(){
         </div>
       </div>
     </div>
-    ${sp?`<div class="card"><div class="ct">${stim?"💉":"🏃"} Sport-Empfehlung heute</div>${sportRows(sp,stim)}${stim?`<div style="margin-top:8px;font-size:12px;color:var(--stim);font-style:italic">⚠️ Keine intensiven Sportarten!</div>`:(phase?.note||sp?.note)?`<div style="margin-top:6px;font-size:12px;color:#B8927C;font-style:italic">💡 ${phase?.note||sp?.note}</div>`:""}</div>`:""}
+    ${sp?`<div class="card"><div class="ct">${stim?"💉":"🏃"} Sport-Empfehlung heute</div>${sportRows(sp,stim)}${stim?`<div style="margin-top:8px;font-size:12px;color:var(--stim);font-style:italic">⚠️ Keine intensiven Sportarten!</div>`:(dpo!==null||phase?.note||sp?.note)?`<div style="margin-top:6px;font-size:12px;color:#B8927C;font-style:italic">${dpo!==null?`🌸 DPO ${dpo} – `:""}${sp?.note||phase?.note||""}</div>`:""}</div>`:""}
     ${renderSportTracking()}
     <div class="card">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
