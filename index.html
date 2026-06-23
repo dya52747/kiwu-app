@@ -123,33 +123,33 @@ const PHASES=[
 function getPhaseIdx(d){if(d<=5)return 0;if(d<=13)return 1;if(d<=16)return 2;return 3}
 
 // Smart phase: uses confirmed ovulation date if available
+function getCurrentCycleOvulation(){
+  // Only return ovulation that belongs to the CURRENT cycle
+  const cur=currentCycle();
+  if(!cur)return null;
+  const cycleStart=cur.startDate;
+  const keys=Object.keys(state.ovulationDays)
+    .filter(k=>state.ovulationDays[k]&&k>=cycleStart)
+    .sort();
+  return keys.length>0?keys[keys.length-1]:null;
+}
+
 function getSmartPhase(){
   const day=cycleDay();
   if(!day)return null;
-  const latestOv=typeof getLatestOvulation==="function"?getLatestOvulation():null;
+  // Menstruation always takes priority on days 1-5
+  if(day<=5)return{...PHASES[0],idx:0};
+  const latestOv=getCurrentCycleOvulation();
   if(latestOv){
-    // Ovulation confirmed – calculate phase from ovulation date
     const ovDate=new Date(latestOv+"T12:00");
     const todayD=today();
     todayD.setHours(12,0,0,0);
     const daysSinceOv=Math.floor((todayD-ovDate)/86400000);
-    if(daysSinceOv<0){
-      // Still before confirmed ovulation → Aufbauphase
-      return{...PHASES[1],idx:1,smart:true};
-    } else if(daysSinceOv===0){
-      // Day of ovulation
-      return{...PHASES[2],idx:2,smart:true};
-    } else {
-      // After ovulation → Lutealphase
-      return{...PHASES[3],idx:3,smart:true,daysSinceOv};
-    }
+    if(daysSinceOv<0)return{...PHASES[1],idx:1,smart:true};
+    if(daysSinceOv===0)return{...PHASES[2],idx:2,smart:true};
+    return{...PHASES[3],idx:3,smart:true,daysSinceOv};
   } else {
-    // No ovulation confirmed yet
-    if(day<=5)return{...PHASES[0],idx:0};
-    // Stay in Aufbauphase until ovulation confirmed
-    if(day>16){
-      return{...PHASES[1],idx:1,smart:true,note:"⏳ Warte auf Eisprung-Bestätigung"};
-    }
+    if(day>16)return{...PHASES[1],idx:1,smart:true,note:"⏳ Warte auf Eisprung-Bestätigung"};
     return{...PHASES[getPhaseIdx(day)],idx:getPhaseIdx(day)};
   }
 }
@@ -288,17 +288,17 @@ const SPORT_DPO={
 };
 
 function getDPO(){
-  const ov=getLatestOvulation();
+  const ov=getCurrentCycleOvulation();
   if(!ov)return null;
   const ovDate=new Date(ov+"T12:00");
   const todayD=today();todayD.setHours(12,0,0,0);
-  return Math.floor((todayD-ovDate)/86400000);
+  const dpo=Math.floor((todayD-ovDate)/86400000);
+  return dpo>=0?dpo:null;
 }
 
 function getSmartSport(){
   const dpo=getDPO();
   if(dpo===null)return null;
-  if(dpo<0)return null; // Before confirmed ovulation
   const key=Math.min(dpo,14);
   return SPORT_DPO[key]||SPORT_DPO[14];
 }
